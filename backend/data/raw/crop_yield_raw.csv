@@ -1,0 +1,7 @@
+Area,Item,Year,hg/ha_yield,average_rain_fall_mm_per_year,pesticides_tonnes,avg_temp,rainfall,ph
+Region_A,Wheat,2020,35000,1200,2.5,22.4,120.5,6.2
+Region_B,Corn,2020,42000,1400,3.1,,150.2,5.8
+Region_C,Rice,2020,50000,,1.8,28.1,300.0,6.5
+Region_D,Soybeans,2020,30000,800,1.2,20.5,-10.0,7.0
+Region_A,Wheat,2021,36000,1200,2.6,23.1,110.4,
+Region_B,Corn,2021,41000,1400,3.0,18.5,145.0,5.9
