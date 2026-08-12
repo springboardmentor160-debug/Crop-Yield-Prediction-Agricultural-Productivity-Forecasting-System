@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+<meta charset="utf-8"/>
+<title>YieldSense Dashboard</title>
+<link href="style.css" rel="stylesheet"/>
+</head>
+<body>
+<nav class="navbar">
+<div class="logo">
+        🌾 <span>YieldSense AI</span>
+</div>
+<ul class="nav-links">
+<li><a href="dashboard.html">Dashboard</a></li>
+<li><a href="#">Prediction</a></li>
+<li><a href="history.html">History</a></li>
+<li><a href="#">Analytics</a></li>
+<li><a href="#">Profile</a></li>
+</ul>
+<div class="user-section">
+<span id="username"></span>
+<button onclick="logout()">
+            Logout
+        </button>
+</div>
+</nav>
+<div class="hero">
+<div class="welcome-card">
+<div>
+<h2 id="welcomeMessage">
+            Welcome Back
+        </h2>
+<p id="welcomeRole"></p>
+</div>
+<div class="welcome-status">
+<h3>🌾 AI Status</h3>
+<p>System Ready</p>
+</div>
+</div>
+<h1>🌾 YieldSense AI Dashboard</h1>
+<p class="subtitle">
+            Smart Crop Yield Prediction &amp; Agricultural Analytics Platform
+        </p>
+</div>
+<div class="status-bar">
+<div class="stats-container">
+<div class="stat-card">
+<h3>Total Predictions</h3>
+<h2 id="totalPredictions">0</h2>
+</div>
+<div class="stat-card">
+<h3>Average Yield</h3>
+<h2 id="averageYield">0 kg</h2>
+</div>
+<div class="stat-card">
+<h3>Current Risk</h3>
+<h2 id="currentRisk">Low</h2>
+</div>
+<div class="stat-card">
+<h3>Best Crop</h3>
+<h2 id="bestCrop">--</h2>
+</div>
+</div>
+        🟢 AI Engine Online | Real-Time Crop Analytics Active
+    </div>
+<div class="form-card">
+<h2>Crop Yield Prediction</h2>
+<label>🌍 Area (Country)</label>
+<input id="area" placeholder="e.g. India" required="" type="text"/>
+<br/><br/>
+<label>📅 Year</label>
+<input id="year" placeholder="e.g. 2023" required="" type="number"/>
+<br/><br/>
+<!-- Crop Type -->
+<div class="input-group">
+<label for="cropType">🌾 Crop Type</label>
+<select id="cropType" onchange="toggleOtherCrop()">
+<option value="">Select Crop</option>
+<option value="Wheat">Wheat</option>
+<option value="Rice">Rice</option>
+<option value="Maize">Maize</option>
+<option value="Cotton">Cotton</option>
+<option value="Sugarcane">Sugarcane</option>
+<option value="Barley">Barley</option>
+<option value="Other">Other</option>
+</select>
+<input id="otherCrop" placeholder="Enter Crop Name" style="display:none; margin-top:10px;" type="text"/>
+</div>
+<!-- Pesticides -->
+<label>🧪 Pesticides Used (tonnes)</label>
+<input id="pesticides" placeholder="e.g. 150" type="number"/>
+<!-- Soil PH -->
+<label>🌱 Soil pH</label>
+<input id="ph" max="14" min="0" placeholder="e.g. 6.8" step="0.1" type="number"/>
+<button onclick="predictYield()">
+            🚀 Predict Yield
+        </button><br/><br/><button onclick="downloadPDF()">📄 Download PDF Report</button><button onclick="downloadCSV()">📊 Download CSV Report</button>
+</div>
+<div class="ai-loader" id="loader">
+<h2>🤖 AI Engine Processing...</h2>
+<p>🌦️ Analyzing Weather...</p>
+<p>🌱 Checking Soil...</p>
+<p>🧠 Running Machine Learning Model...</p>
+<p>📈 Generating Prediction...</p>
+</div>
+<div class="dashboard-grid">
+<div class="card">
+<h2>🌾 Estimated Yield</h2>
+<div class="value" id="yield">Waiting...</div>
+</div>
+<div class="card">
+<h2>☀ Weather Status</h2>
+<p id="weather">Waiting...</p>
+</div>
+<div class="card">
+<h2>🌱 Soil Analysis</h2>
+<p id="soil">Waiting...</p>
+</div>
+<div class="card">
+<h2>⚠ Risk Level</h2>
+<p id="risk">Waiting...</p>
+</div>
+<div class="card">
+<h2>💡 Recommendation</h2>
+<p id="recommendation">Waiting...</p>
+</div>
+<div class="card">
+<h2>📈 Productivity Report</h2>
+<p id="report">Waiting...</p>
+</div>
+<div class="card">
+<h2>🤖 AI Farmer Advisory</h2>
+<p id="cropAdvice">
+                Waiting for crop analysis...
+            </p>
+</div>
+<div class="card">
+<h2>🧠 AI Crop Recommendation</h2>
+<div id="aiRecommendation">
+<p>🌾 Recommended Crop : Waiting...</p>
+<p>🎯 Confidence : --%</p>
+<p>🧠 Reason :</p>
+<ul id="aiReason">
+<li>Waiting...</li>
+</ul>
+<p>👨‍🌾 Farmer Advice :</p>
+<ul id="farmerAdvice">
+<li>Waiting...</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="card summary-card">
+<h2>📅 Seasonal Report</h2>
+<p>
+                Current season conditions are favorable for crop growth.
+                Rainfall and temperature are within recommended limits.
+            </p>
+</div>
+<div class="card summary-card">
+<h2>🤖 AI Summary</h2>
+<p id="summary">
+                Waiting for prediction...
+            </p>
+</div>
+<div class="card visualizations summary-card" style="text-align:center;">
+<h2>📊  Live Yield Analytics </h2>
+<canvas heights="120" id="yieldChart"></canva s>
+</div>
+</div>
+<div class="footer">
+        YieldSense AI © 2026
+    </div>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script><script src="app.js"></script>
+<div id="pdfReport" style="display:none; padding:40px; font-family:Arial;">
+<h1 style="color:#2e7d32;">🌾 YieldSense AI Report</h1>
+<hr/>
+<h2>Prediction Summary</h2>
+<p><strong>Area :</strong> <span id="pdfArea"></span></p>
+<p><strong>Crop :</strong> <span id="pdfCrop"></span></p>
+<p><strong>Estimated Yield :</strong> <span id="pdfYield"></span></p>
+<hr/>
+<h2>Live Weather</h2>
+<p id="pdfWeather"></p>
+<hr/>
+<h2>Risk Analysis</h2>
+<p id="pdfRisk"></p>
+<hr/>
+<h2>AI Recommendation</h2>
+<div id="pdfRecommendation"></div>
+<hr/>
+<h2>Farmer Advice</h2>
+<div id="pdfAdvice"></div>
+<hr/>
+<hr/>
+<h2>Report Information</h2>
+<p>
+<strong>Generated By :</strong>
+<span id="pdfUser"></span>
+</p>
+<p>
+<strong>Date &amp; Time :</strong>
+<span id="pdfDate"></span>
+</p>
+<br/>
+<p style="text-align:center;color:#2e7d32;font-size:18px;font-weight:bold;">
+🌾 YieldSense AI - Smart Agriculture Platform 🌾
+</p>
+</div>
+</div></body>
+</html>

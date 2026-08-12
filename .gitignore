@@ -216,3 +216,6 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# YieldSense AI - Large ML model
+models/crop_yield_model.pkl
