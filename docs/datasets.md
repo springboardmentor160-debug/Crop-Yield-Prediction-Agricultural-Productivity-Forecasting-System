@@ -1,11 +1,12 @@
-# Datasets Required
+# Dataset Documentation
 
-1. Crop Yield Dataset (Kaggle)
-2. Weather Dataset
-3. Soil Dataset
+## 1. Crop Yield Dataset
 
-Purpose:
-- Crop Yield Prediction
-- Weather Analysis
-- Soil Analysis
-- Recommendation System
+YieldSense AI uses a crop-yield dataset as the primary dataset for machine learning-based crop yield prediction.
+
+### Raw Dataset
+
+The original dataset is stored at:
+
+```text
+datasets/raw/crop_yield_raw.csv
