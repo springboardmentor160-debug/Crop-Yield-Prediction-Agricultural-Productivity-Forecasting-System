@@ -9,7 +9,6 @@ from auth_handler import (
     create_token
 )
 
-
 router = APIRouter()
 
 
