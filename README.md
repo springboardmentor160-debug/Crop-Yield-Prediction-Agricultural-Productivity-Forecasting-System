@@ -1,26 +1,74 @@
 # YieldSense AI
 
-YieldSense AI is a centralized, predictive analytics web platform designed to estimate future crop production using environmental parameters, weather conditions, and soil characteristics.
+## Overview
+YieldSense AI is a centralized, predictive agricultural analytics platform designed to estimate future crop yields using environmental factors, weather metrics, and soil characteristics. The platform translates complex predictive model data into plain-English agronomic recommendations and real-time risk assessment alerts, empowering farmers, researchers, and administrators to make data-driven agricultural decisions.
+
+## Features
+- **Crop Yield Prediction**: Interactive machine learning crop yield forecasting using a trained XGBoost regressor model.
+- **Role-Based Portals**: Dedicated, responsive dashboard layouts tailored to the needs of Farmers (prediction/alerts), Researchers (model metrics/API specs), and Administrators (system logs/metrics).
+- **Agronomic Recommendations**: Dynamic soil and nutrient recommendations (NPK/pH inputs) to optimize crop management.
+- **Risk Assessment System**: Real-time climate risk calculation (Low/Medium/High Risk badges) using automated temperature and rainfall threshold alerts.
+- **Data Exporting**: Capability to export productivity and prediction reports as CSV or PDF documents.
+- **Comprehensive API Tests**: Full unit testing coverage of backend endpoints with Pytest.
+
+## Tech Stack
+- **Backend**: Python FastAPI, SQLAlchemy (SQLite local / PostgreSQL production), Pydantic
+- **Frontend**: Next.js, React, Tailwind CSS, Recharts
+- **ML & Analytics**: Scikit-learn, XGBoost, Pandas, NumPy
+- **Deployment & DevOps**: Docker, Docker Compose, Pytest, HTTPX
+
+## Setup Instructions
+
+### Local Manual Installation
+
+#### 1. Clone the repository
+```bash
+git clone https://github.com/springboardmentor656-alt/Title-YieldSense-AI-Crop-Yield-Prediction-Agricultural-Productivity-Forecasting-System.git
+cd Title-YieldSense-AI-Crop-Yield-Prediction-Agricultural-Productivity-Forecasting-System
+git checkout Tirutopu-Srivardhan
+```
+
+#### 2. Start Backend Server
+```bash
+cd backend
+python -m venv venv
+# On Windows PowerShell:
+.\venv\Scripts\Activate.ps1
+# On Linux/macOS:
+source venv/bin/activate
+
+pip install -r requirements.txt
+python -m uvicorn app.main:app --reload --port 8000
+```
+
+#### 3. Start Frontend Server
+In a new terminal window:
+```bash
+cd frontend
+npm install
+npm run dev -- --port 3000
+```
+Open [http://localhost:3000](http://localhost:3000) to view the application.
+
+#### 4. Run Backend Tests
+Ensure your backend virtual environment is active, then run:
+```bash
+python -m pytest tests/ -W ignore
+```
 
 ---
 
-## 📋 Problem Statement
-Farmers and agricultural organizations operate under high economic vulnerability due to changing climate dynamics, variable soil qualities, and unpredictable weather events. Traditional farming relies on historical intuition, which fails under extreme climate volatility. This creates resource misallocation (over-fertilization, poor crop choice, water wastage), lowers seasonal crop yield, and causes food supply insecurity.
+### Run with Docker (Recommended)
+You can start all services (Frontend, Backend, and PostgreSQL database) simultaneously using Docker Compose:
+```bash
+docker-compose up --build
+```
+Access the application at [http://localhost:3000](http://localhost:3000).
 
-## 🛠️ What We Have Implemented
-* **Scaffolded Workspace**: Initialized a Next.js frontend with Tailwind CSS and a Python FastAPI backend server running a mock database fallback to SQLite for local development.
-* **Authentication Engine**: Created password encryption and JWT session handlers (`auth_handler.py`) to manage user security.
-* **Data Cleaning Preprocessor**: Wrote a Pandas data preprocessor (`preprocess.py`) to clean datasets, impute missing values, and filter negative-value outliers.
-* **Predictive ML Script**: Built a training script (`train_model.py`) using XGBoost to split datasets, train predictions, analyze feature coefficients, and serialize weights to a binary model (`crop_yield_model.pkl`).
-* **Inference Endpoint & UI Form**: Developed the POST API route `/api/v1/predict-yield` and connected it to a dynamic frontend form that triggers live predictions and updates stats in real-time.
+For cloud production deployment steps (AWS and Azure architecture), see the detailed [Cloud & Container Deployment Guide](docs/deployment.md).
 
-## 💻 Tech Stack
-* **Frontend**: React, Next.js (App Router), Tailwind CSS (v3 with Custom Glassmorphism).
-* **Backend**: Python, FastAPI, Uvicorn, SQLAlchemy.
-* **Database**: PostgreSQL (Structured Models) + SQLite (Fallback cache) + MongoDB (Prediction Logs).
-* **Machine Learning**: Scikit-Learn, XGBoost, Joblib, Pandas, NumPy.
+## Screenshots
+*(Dashboards screenshots can be added here during documentation review)*
 
-## ✨ Core Features
-* **Role-Based Access (RBAC)**: Secure pages and custom dashboard layouts mapping specifically to 5 user roles (Farmer, Admin, Consultant, Researcher, Department).
-* **AI Yield Forecasting**: Inputs for Average Temperature, Rainfall, and pH that return mathematically calculated yield estimates ($kg/ha$).
-* **Real-time Advisories**: Instant weather warnings (Optimal vs Stress) and soil health feedback (High Fertility vs Suboptimal pH) based on inputs.
+## License
+This project is licensed under the MIT License - see [LICENSE.md](LICENSE.md)

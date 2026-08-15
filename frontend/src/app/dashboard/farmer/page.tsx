@@ -33,13 +33,27 @@ export default function FarmerDashboard() {
   const [isLoading, setIsLoading] = useState(false);
   const [dashboardData, setDashboardData] = useState<any>(null);
   const [isDashboardLoading, setIsDashboardLoading] = useState(true);
+  const [farmId, setFarmId] = useState(1);
+  const [recsData, setRecsData] = useState<{ recommendations: string[], risk_level: string } | null>(null);
+  const [isRecsLoading, setIsRecsLoading] = useState(true);
+  const [weatherLogs, setWeatherLogs] = useState<any[]>([]);
+  const [isWeatherLogsLoading, setIsWeatherLogsLoading] = useState(true);
+
   const fetchPrediction = async () => {
     setIsLoading(true);
     try {
       const data = await fetchJson(`${API_BASE}/api/v1/predict-yield`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ temp: parseFloat(temp), rainfall: parseFloat(rainfall), ph: parseFloat(ph) })
+        body: JSON.stringify({ 
+          temp: parseFloat(temp), 
+          rainfall: parseFloat(rainfall), 
+          ph: parseFloat(ph),
+          crop_type: cropType,
+          n: parseFloat(n),
+          p: parseFloat(p),
+          k: parseFloat(k)
+        })
       });
       setPredictedYield(data.estimated_yield);
       setWeatherStatus(data.weather_status);
@@ -70,8 +84,9 @@ export default function FarmerDashboard() {
   };
 
   const fetchDashboardData = async () => {
+    setIsDashboardLoading(true);
     try {
-      const data = await fetchJson(`${API_BASE}/api/v1/dashboard/summary?farm_id=1`);
+      const data = await fetchJson(`${API_BASE}/api/v1/dashboard/summary?farm_id=${farmId}`);
       setDashboardData(data);
     } catch (error) {
       console.error('Failed to load dashboard:', error);
@@ -80,13 +95,39 @@ export default function FarmerDashboard() {
     }
   };
 
+  const fetchFarmRecommendations = async () => {
+    setIsRecsLoading(true);
+    try {
+      const data = await fetchJson(`${API_BASE}/api/v1/analytics/recommendations?farm_id=${farmId}`);
+      setRecsData(data);
+    } catch (error) {
+      console.error('Failed to load recommendations:', error);
+    } finally {
+      setIsRecsLoading(false);
+    }
+  };
+
+  const fetchWeatherLogs = async () => {
+    setIsWeatherLogsLoading(true);
+    try {
+      const data = await fetchJson(`${API_BASE}/api/v1/analytics/weather-logs?farm_id=${farmId}`);
+      setWeatherLogs(data);
+    } catch (error) {
+      console.error('Failed to load weather logs:', error);
+    } finally {
+      setIsWeatherLogsLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchRecommendations();
     fetchDashboardData();
-  }, []);
+    fetchFarmRecommendations();
+    fetchWeatherLogs();
+  }, [farmId]);
 
   return (
-    <div className="flex h-screen bg-gray-100 font-sans flex-col md:flex-row">
+    <div className="flex min-h-screen bg-gray-100 font-sans flex-col md:flex-row md:h-screen md:overflow-hidden">
       
       {/* Sidebar */}
       <aside className="w-full md:w-64 bg-white border-r border-gray-200 flex flex-col shrink-0">
@@ -98,20 +139,20 @@ export default function FarmerDashboard() {
         <nav className="p-4 flex md:flex-col gap-2 overflow-x-auto md:overflow-visible flex-1">
           <button 
             onClick={() => setActiveTab('dashboard')} 
-            className={`whitespace-nowrap text-left px-4 py-2 rounded-md font-medium ${activeTab === 'dashboard' ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-50'}`}
+            className={`whitespace-nowrap text-left px-4 py-2 rounded-lg font-medium transition-all ${activeTab === 'dashboard' ? 'bg-green-50 text-green-700 font-semibold' : 'text-gray-600 hover:bg-gray-50'}`}
           >
             Overview
           </button>
           <button 
             onClick={() => setActiveTab('weather')} 
-            className={`whitespace-nowrap text-left px-4 py-2 rounded-md font-medium ${activeTab === 'weather' ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-50'}`}
+            className={`whitespace-nowrap text-left px-4 py-2 rounded-lg font-medium transition-all ${activeTab === 'weather' ? 'bg-green-50 text-green-700 font-semibold' : 'text-gray-600 hover:bg-gray-50'}`}
           >
             Weather Logs
           </button>
         </nav>
 
         <div className="hidden md:block mt-auto p-6 border-t border-gray-200">
-          <Link href="/login" className="text-gray-600 hover:text-gray-900 font-medium">
+          <Link href="/login" className="text-gray-600 hover:text-gray-900 font-medium transition-colors">
             Sign Out
           </Link>
         </div>
@@ -121,12 +162,24 @@ export default function FarmerDashboard() {
       <main className="flex-1 overflow-y-auto p-4 md:p-8">
         <div className="max-w-7xl mx-auto p-8">
           
-          <header className="flex justify-between items-end mb-8 border-b border-gray-200 pb-4">
+          <header className="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 border-b border-gray-200 pb-4 gap-4">
             <div>
               <h2 className="text-3xl font-bold text-gray-900">Analytics Dashboard</h2>
               <p className="text-gray-600 mt-1">Real-time yield forecasting, risk analysis, and agronomic recommendations.</p>
             </div>
-            <div />
+            <div className="w-full md:w-auto">
+              <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Select Active Farm</label>
+              <select 
+                value={farmId} 
+                onChange={(e) => setFarmId(Number(e.target.value))} 
+                className="w-full md:w-64 px-3 py-2 border border-gray-300 rounded-lg bg-white text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
+              >
+                <option value={1}>Main Cultivation Field (Low Risk)</option>
+                <option value={2}>South Slope Field (High Risk)</option>
+                <option value={3}>Dryland Plot B (Medium Risk)</option>
+                <option value={4}>Valley Orchard (Optimal/Default)</option>
+              </select>
+            </div>
           </header>
 
           {activeTab === 'dashboard' && (
@@ -174,7 +227,7 @@ export default function FarmerDashboard() {
                   <form onSubmit={handleForecast} className="space-y-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Crop Type</label>
-                      <select value={cropType} onChange={(e) => setCropType(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white">
+                      <select value={cropType} onChange={(e) => setCropType(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500">
                         <option value="Wheat">Wheat</option>
                         <option value="Rice">Rice</option>
                         <option value="Maize">Maize</option>
@@ -184,31 +237,31 @@ export default function FarmerDashboard() {
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Temp (°C)</label>
-                        <input type="number" step="0.1" value={temp} onChange={(e) => setTemp(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md" required />
+                        <input type="number" step="0.1" value={temp} onChange={(e) => setTemp(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500" required />
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Rain (mm)</label>
-                        <input type="number" step="0.1" value={rainfall} onChange={(e) => setRainfall(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md" required />
+                        <input type="number" step="0.1" value={rainfall} onChange={(e) => setRainfall(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500" required />
                       </div>
                     </div>
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Soil pH</label>
-                      <input type="number" step="0.1" value={ph} onChange={(e) => setPh(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md" required />
+                      <input type="number" step="0.1" value={ph} onChange={(e) => setPh(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500" required />
                     </div>
 
                     <div className="grid grid-cols-3 gap-2">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1 text-center">N</label>
-                        <input type="number" step="0.1" value={n} onChange={(e) => setN(e.target.value)} className="w-full px-2 py-1 border border-gray-300 rounded-md text-center" />
+                        <input type="number" step="0.1" value={n} onChange={(e) => setN(e.target.value)} className="w-full px-2 py-1 border border-gray-300 rounded-lg text-center focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500" />
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1 text-center">P</label>
-                        <input type="number" step="0.1" value={p} onChange={(e) => setP(e.target.value)} className="w-full px-2 py-1 border border-gray-300 rounded-md text-center" />
+                        <input type="number" step="0.1" value={p} onChange={(e) => setP(e.target.value)} className="w-full px-2 py-1 border border-gray-300 rounded-lg text-center focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500" />
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1 text-center">K</label>
-                        <input type="number" step="0.1" value={k} onChange={(e) => setK(e.target.value)} className="w-full px-2 py-1 border border-gray-300 rounded-md text-center" />
+                        <input type="number" step="0.1" value={k} onChange={(e) => setK(e.target.value)} className="w-full px-2 py-1 border border-gray-300 rounded-lg text-center focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500" />
                       </div>
                     </div>
                     
@@ -218,29 +271,74 @@ export default function FarmerDashboard() {
                   </form>
                 </div>
 
-                {/* Recommendations */}
-                <div className="card lg:col-span-2">
-                  <h3 className="text-lg font-bold text-gray-900 mb-4 border-b border-gray-200 pb-2">Agronomic Recommendations</h3>
-                  
-                  {weatherStatus !== 'Optimal' && (
-                    <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-md">
-                      <h4 className="font-bold text-red-700">{weatherStatus} Detected</h4>
-                      <p className="text-sm text-red-600 mt-1">Immediate mitigation required. Consider adjusting irrigation schedules or applying protective crop sprays.</p>
+                {/* Recommendations & Risk Panel */}
+                <div className="card lg:col-span-2 flex flex-col justify-between">
+                  <div>
+                    <div className="flex justify-between items-center mb-4 border-b border-gray-200 pb-2">
+                      <h3 className="text-lg font-bold text-gray-900">Agronomic Recommendations</h3>
+                      {isRecsLoading ? (
+                        <span className="text-sm text-gray-500">Loading risk...</span>
+                      ) : recsData ? (
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium text-gray-600">Risk Level:</span>
+                          <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold border ${
+                            recsData.risk_level === 'Low' ? 'bg-green-50 text-green-700 border-green-200' :
+                            recsData.risk_level === 'Medium' ? 'bg-amber-50 text-amber-700 border-amber-200' :
+                            'bg-red-50 text-red-700 border-red-200'
+                          }`}>
+                            {recsData.risk_level}
+                          </span>
+                        </div>
+                      ) : null}
                     </div>
-                  )}
 
-                  <ul className="space-y-3 mt-4">
-                    {recommendations.length > 0 ? (
-                      recommendations.map((rec, idx) => (
-                        <li key={idx} className="flex items-start gap-2 text-gray-700 bg-gray-50 p-3 rounded-md border border-gray-100">
-                          <span className="font-bold text-blue-500">•</span>
-                          {rec}
-                        </li>
-                      ))
-                    ) : (
-                      <li className="text-gray-600 italic">No specific recommendations at this time. Maintain current practices.</li>
+                    {weatherStatus !== 'Optimal' && (
+                      <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-md">
+                        <h4 className="font-bold text-red-700">{weatherStatus} Detected</h4>
+                        <p className="text-sm text-red-600 mt-1">Immediate mitigation required. Consider adjusting irrigation schedules or applying protective crop sprays.</p>
+                      </div>
                     )}
-                  </ul>
+
+                    <div className="space-y-4">
+                      {/* Active Farm specific recommendations */}
+                      <div>
+                        <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Active Farm Recommendations</h4>
+                        <ul className="space-y-2">
+                          {isRecsLoading ? (
+                            <li className="text-gray-500 italic text-sm">Loading advice...</li>
+                          ) : recsData && recsData.recommendations.length > 0 ? (
+                            recsData.recommendations.map((tip, idx) => (
+                              <li key={idx} className="flex items-start gap-2 text-gray-700 bg-gray-50 p-2.5 rounded-md border border-gray-100 text-sm">
+                                <span className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${
+                                  recsData.risk_level === 'Low' ? 'bg-green-500' :
+                                  recsData.risk_level === 'Medium' ? 'bg-amber-500' :
+                                  'bg-red-500'
+                                }`}></span>
+                                {tip}
+                              </li>
+                            ))
+                          ) : (
+                            <li className="text-gray-500 italic text-sm">No warnings found. Maintain current farming practices.</li>
+                          )}
+                        </ul>
+                      </div>
+
+                      {/* Forecast/Input specific recommendations */}
+                      {recommendations.length > 0 && (
+                        <div>
+                          <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Forecast Insights</h4>
+                          <ul className="space-y-2">
+                            {recommendations.map((rec, idx) => (
+                              <li key={idx} className="flex items-start gap-2 text-gray-700 bg-blue-50/50 p-2.5 rounded-md border border-blue-100 text-sm">
+                                <span className="font-bold text-blue-500 shrink-0">•</span>
+                                {rec}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -299,31 +397,33 @@ export default function FarmerDashboard() {
                 <p className="text-gray-600 mt-1">Review historical climate stress detection for drought, heat, and floods.</p>
               </header>
 
-              <div className="card">
+               <div className="card">
                 <h3 className="text-lg font-bold text-gray-900 mb-4">Recent Climate Alerts</h3>
-                <ul className="space-y-4">
-                  <li className="flex justify-between items-center border-b border-gray-100 pb-4">
-                    <div>
-                      <h4 className="font-bold text-red-700">Drought Warning</h4>
-                      <p className="text-sm text-gray-500">2026-08-01 · Rainfall dropped below 200mm threshold.</p>
-                    </div>
-                    <span className="px-3 py-1 bg-red-100 text-red-800 rounded-full text-xs font-bold">High Severity</span>
-                  </li>
-                  <li className="flex justify-between items-center border-b border-gray-100 pb-4">
-                    <div>
-                      <h4 className="font-bold text-yellow-700">Heat Stress Detected</h4>
-                      <p className="text-sm text-gray-500">2026-07-28 · Average temperature exceeded 32°C for 5 days.</p>
-                    </div>
-                    <span className="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs font-bold">Medium Severity</span>
-                  </li>
-                  <li className="flex justify-between items-center">
-                    <div>
-                      <h4 className="font-bold text-green-700">Optimal Growing Conditions</h4>
-                      <p className="text-sm text-gray-500">2026-07-15 · pH 6.2, adequate soil moisture.</p>
-                    </div>
-                    <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-xs font-bold">Normal</span>
-                  </li>
-                </ul>
+                {isWeatherLogsLoading ? (
+                  <p className="text-gray-500 italic text-sm">Loading climate history...</p>
+                ) : weatherLogs.length > 0 ? (
+                  <ul className="space-y-4">
+                    {weatherLogs.map((log, idx) => (
+                      <li key={idx} className="flex justify-between items-center border-b border-gray-100 last:border-b-0 pb-4 last:pb-0">
+                        <div>
+                          <h4 className={`font-bold ${
+                            log.color === 'red' ? 'text-red-700' :
+                            log.color === 'yellow' ? 'text-yellow-700' :
+                            'text-green-700'
+                          }`}>{log.title}</h4>
+                          <p className="text-sm text-gray-500">{log.message}</p>
+                        </div>
+                        <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                          log.color === 'red' ? 'bg-red-100 text-red-800' :
+                          log.color === 'yellow' ? 'bg-yellow-100 text-yellow-800' :
+                          'bg-green-100 text-green-800'
+                        }`}>{log.severity}</span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-gray-500 italic text-sm">No historical climate alerts found for this field.</p>
+                )}
               </div>
             </>
           )}

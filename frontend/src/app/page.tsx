@@ -21,7 +21,7 @@ export default function Home() {
           A straightforward precision agriculture platform using machine learning to forecast crop yields, analyze environmental risks, and deliver soil recommendations.
         </p>
         <div className="flex gap-4">
-          <Link href="/dashboard/farmer" className="btn-primary px-8 py-3 text-lg">
+          <Link href="/login" className="btn-primary px-8 py-3 text-lg">
             Launch Dashboard
           </Link>
         </div>

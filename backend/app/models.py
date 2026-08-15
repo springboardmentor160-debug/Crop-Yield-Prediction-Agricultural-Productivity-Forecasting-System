@@ -1,4 +1,5 @@
-from sqlalchemy import Column, Integer, String, Numeric, ForeignKey
+import datetime
+from sqlalchemy import Column, Integer, String, Numeric, ForeignKey, DateTime
 from sqlalchemy.orm import relationship
 from .database import Base
 
@@ -7,8 +8,10 @@ class User(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     email = Column(String(255), unique=True, index=True, nullable=False)
+    name = Column(String(255), default="Precision Farmer")
     password_hash = Column(String(255), nullable=False)
     role = Column(String(50), default="Farmer")  # 'Farmer', 'Admin'
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
 
     farms = relationship("Farm", back_populates="user", cascade="all, delete-orphan")
 
@@ -34,3 +37,17 @@ class Crop(Base):
     hectares_planted = Column(Numeric(10, 2))
 
     farm = relationship("Farm", back_populates="crops")
+
+class CropYieldRecord(Base):
+    __tablename__ = "crop_yield_records"
+
+    id = Column(Integer, primary_key=True, index=True)
+    location = Column(String(100))
+    date = Column(String(50))
+    crop_type = Column(String(50))
+    avg_temp = Column(Numeric(5, 2))
+    precipitation = Column(Numeric(6, 2))
+    soil_moisture = Column(Numeric(5, 2))
+    yield_amount = Column(Numeric(8, 2))
+    farm_id = Column(Integer, default=1)
+

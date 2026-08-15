@@ -4,11 +4,44 @@ from sqlalchemy.orm import Session
 from datetime import timedelta
 from ..database import get_db
 from ..models import User
-from ..schemas import Token, UserCreate, UserResponse
+from ..schemas import Token, UserCreate, UserResponse, UserUpdate
 from ..core.security import verify_password, get_password_hash, create_access_token
 from ..core.config import settings
 
 router = APIRouter()
+
+@router.get("/users", response_model=list[UserResponse])
+def get_users(db: Session = Depends(get_db)):
+    return db.query(User).all()
+
+@router.put("/users/{user_id}", response_model=UserResponse)
+def update_user(user_id: int, updated_user: UserUpdate, db: Session = Depends(get_db)):
+    db_user = db.query(User).filter(User.id == user_id).first()
+    if not db_user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Check if email is already taken by another user
+    existing = db.query(User).filter(User.email == updated_user.email, User.id != user_id).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="Email already taken")
+        
+    db_user.email = updated_user.email
+    db_user.name = updated_user.name
+    db_user.role = updated_user.role
+    if updated_user.password:
+        db_user.password_hash = get_password_hash(updated_user.password)
+    db.commit()
+    db.refresh(db_user)
+    return db_user
+
+@router.delete("/users/{user_id}")
+def delete_user(user_id: int, db: Session = Depends(get_db)):
+    db_user = db.query(User).filter(User.id == user_id).first()
+    if not db_user:
+        raise HTTPException(status_code=404, detail="User not found")
+    db.delete(db_user)
+    db.commit()
+    return {"message": "User deleted successfully"}
 
 @router.post("/register", response_model=UserResponse)
 def register(user: UserCreate, db: Session = Depends(get_db)):
@@ -41,4 +74,4 @@ def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db:
     access_token = create_access_token(
         subject=user.email, expires_delta=access_token_expires
     )
-    return {"access_token": access_token, "token_type": "bearer"}
+    return {"access_token": access_token, "token_type": "bearer", "role": user.role}
