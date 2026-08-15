@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+sqlalchemy
+psycopg2-binary
+pandas
+joblib
+xgboost==3.3.0
+scikit-learn
+python-dotenv

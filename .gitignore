@@ -216,3 +216,7 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+data/processed/crop_yield_model.pkl
+
+data/processed/crop_yield_model.pkl
