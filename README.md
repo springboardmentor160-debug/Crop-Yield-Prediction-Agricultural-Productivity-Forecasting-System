@@ -19,14 +19,16 @@ To develop an intelligent system that helps farmers make better agricultural dec
 - 🔐 User registration and login
 - 🐘 PostgreSQL database
 
+
 ## 🛠️ Tech Stack
 
-**Frontend:** Next.js, React, TypeScript, Tailwind CSS  
-**Backend:** Python, FastAPI, REST APIs
-**Machine Learning:** XGBoost 
-**Database:** PostgreSQL  
-**Weather API:** Open-Meteo  
-**Deployment:** Docker & Docker Compose
+- **Frontend:** Next.js, React, TypeScript, Tailwind CSS  
+- **Backend:** Python, FastAPI, REST APIs  
+- **Machine Learning:** XGBoost  
+- **Database:** PostgreSQL  
+- **Weather API:** Open-Meteo  
+- **Deployment:** Docker & Docker Compose  
+
 
 ## 🔄 Workflow
 
