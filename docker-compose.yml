@@ -6,6 +6,8 @@ services:
     container_name: yieldsense-backend
     ports:
       - "8000:8000"
+    environment:
+      DB_HOST: host.docker.internal
     restart: unless-stopped
 
   frontend:

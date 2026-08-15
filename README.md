@@ -1,43 +1,50 @@
-# 🌾 Crop Yield Prediction & Agricultural Productivity Forecasting System
+# 🌾 YieldSense AI
 
-An AI-powered web application that predicts crop yield using agricultural, soil, weather, and environmental data. The system provides data-driven insights through an interactive dashboard to support better crop planning and agricultural decision-making.
+### Crop Yield Prediction & Agricultural Productivity Forecasting System
 
-## 🎯 Project Objective
+YieldSense AI is an AI-powered agricultural application that predicts crop yield using farm, soil, crop, and weather information. It also provides weather insights, analytics, soil analysis, and agricultural recommendations.
 
-The objective of this project is to develop an intelligent agricultural system that uses **Machine Learning and modern web technologies** to predict crop yield and provide useful agricultural insights for better planning and decision-making.
+## 🎯 Objective
+
+To develop an intelligent system that helps farmers make better agricultural decisions using machine learning and environmental data.
 
 ## ✨ Features
 
-- 🌾 Crop yield prediction using **XGBoost**
-- 🌱 Agricultural and soil data analysis
-- 🌦️ Weather and environmental insights
-- 📊 Interactive analytics dashboard
-- 💡 Crop recommendations and insights
-- 🔐 User registration and authentication
-- 📄 Prediction and report generation
-- 🐘 PostgreSQL database integration
+- 🌱 Farm profile and soil information
+- 🤖 AI-based crop yield prediction
+- 🌦️ Real-time weather information
+- 📊 Analytics and prediction history
+- 🌾 Soil health analysis
+- 💡 Agricultural recommendations
+- 🔐 User registration and login
+- 🐘 PostgreSQL database
 
 ## 🛠️ Tech Stack
 
-**Frontend:** Next.js, React, TypeScript, Tailwind CSS
-
+**Frontend:** Next.js, React, TypeScript, Tailwind CSS  
 **Backend:** Python, FastAPI, REST APIs
+**Machine Learning:** XGBoost 
+**Database:** PostgreSQL  
+**Weather API:** Open-Meteo  
+**Deployment:** Docker & Docker Compose
 
-**Machine Learning:** XGBoost, Pandas, Scikit-learn, Joblib
+## 🔄 Workflow
 
-**Database:** PostgreSQL
-
-## 🤖 Machine Learning
-
-The system uses an **XGBoost Regression model** to predict crop yield based on relevant agricultural and environmental features.
-
-### Prediction Workflow
-
-**User Input → Data Validation & Preprocessing → Feature Processing → XGBoost Model → Predicted Yield → Dashboard & Insights**
-
-## 🏗️ System Architecture
-
-**User → Next.js Frontend → FastAPI Backend → XGBoost ML Model → Crop Yield Prediction → Dashboard & Insights → PostgreSQL Database**
+```text
+Register / Login
+       ↓
+    Dashboard
+       ↓
+Farm & Soil Information
+       ↓
+Weather Data
+       ↓
+Crop Yield Prediction
+       ↓
+Analytics & History
+       ↓
+Agricultural Recommendations
+```
 
 ## 📂 Project Structure
 
@@ -54,52 +61,38 @@ Crop-Yield-Prediction-Agricultural-Productivity-Forecasting-System/
 └── requirements.txt
 ```
 
-## 🚀 Getting Started
+## 🚀 Run the Project
 
-### Backend
-
-Create and activate a virtual environment:
-```bash
-python -m venv venv
-```
-
-For Windows:
+Using Docker
 
 ```bash
-venv\Scripts\activate
-```
-Install the required Python dependencies:
-
-```bash
-pip install -r requirements.txt
+docker compose build
+docker compose up
 ```
 
-Start the FastAPI backend using the project's configured startup command.
+### Application
 
-### Frontend
+- **Frontend:** http://localhost:3000
+- **Backend API:** http://localhost:8000
+- **API Documentation:** http://localhost:8000/docs
 
-```bash
-cd frontend
-npm install
-npm run dev
-```
 
-The frontend will start in development mode.
+## 📊 Application Dashboard
 
-## 📊 Dashboard
-
-The application provides an interactive dashboard to view:
+The dashboard provides an overview of:
 
 - Predicted crop yield
-- Weather conditions
+- Current weather conditions
 - Yield trends
 - Seasonal performance
 - Farm statistics
 - Crop and farm information
 
+The application also includes dedicated sections for weather, analytics, soil information, prediction history, and recommendations.
+
 ## 🔮 Future Enhancements
 
-- Improved prediction accuracy with larger datasets
-- Advanced agricultural recommendations
-- Cloud deployment
-- Real-time monitoring and notifications
+- Improve prediction accuracy using larger datasets
+- Enhance agricultural recommendations
+- Add cloud deployment
+- Introduce real-time monitoring and notifications

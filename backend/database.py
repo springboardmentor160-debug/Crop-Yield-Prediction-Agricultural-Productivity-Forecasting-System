@@ -1,10 +1,11 @@
+import os
 import psycopg2
 
 # connects fastAPI with PostgreSQL
 def get_conn():
 
     conn = psycopg2.connect(
-        host="localhost",
+        host=os.getenv("DB_HOST","localhost"),
         database="yieldsense_db",
         user="postgres",
         password="Lovely@123",
