@@ -27,53 +27,10 @@ Thumbs.db
 .idea/
 
 
-
-
-
-# ─── Frontend (Next.js) ───
-frontend/node_modules/
-frontend/.next/
-frontend/out/
-frontend/.env
-frontend/.env.local
-frontend/.env.*.local
-frontend/npm-debug.log*
-frontend/yarn-debug.log*
-frontend/yarn-error.log*
-frontend/.turbo/
-frontend/*.tsbuildinfo
-frontend/next-env.d.ts
-
-# ─── Backend (Python / FastAPI) ───
-backend/venv/
-backend/__pycache__/
-backend/**/__pycache__/
-backend/*.pyc
-backend/.env
-backend/.pytest_cache/
-backend/.mypy_cache/
-backend/*.egg-info/
-backend/.dist/
-
-# ─── Database ───
-backend/yieldsense.db
-*.sqlite3
-
-# ─── Data ───
-data/raw/*.csv
-data/processed/*.csv
-
-# ─── Docker ───
-**/docker/**/*.env
-
-# ─── IDE / Editor ───
-.vscode/
-.idea/
-*.swp
-
-# ─── OS ───
-.DS_Store
-Thumbs.db
-
-# ─── Logs ───
-*.log
+node_modules/
+venv/
+__pycache__/
+*.pyc
+.env
+.env.local
+.next/

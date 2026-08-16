@@ -176,6 +176,8 @@ export const api = {
   getSoilReport: () => request("/reports/soil-report"),
   exportCsv: (reportType: string) =>
     request(`/reports/export/csv?report_type=${encodeURIComponent(reportType)}`),
+  exportPdf: (reportType: string) =>
+    request(`/reports/export/pdf?report_type=${encodeURIComponent(reportType)}`),
   
   // ── GIS ──────────────────────────────────────
   getFarmLocations: () => request("/gis/farms/locations"),
