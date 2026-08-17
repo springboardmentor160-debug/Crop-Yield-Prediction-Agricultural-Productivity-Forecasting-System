@@ -90,3 +90,20 @@ CREATE TABLE IF NOT EXISTS dataset_uploads (
     uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+
+CREATE TABLE IF NOT EXISTS prediction_logs (
+    id SERIAL PRIMARY KEY,
+    user_id INT REFERENCES users(id) ON DELETE SET NULL,
+    crop_name VARCHAR(100),
+    avg_temp NUMERIC(5,2),
+    rainfall NUMERIC(8,2),
+    soil_ph NUMERIC(3,2),
+    nitrogen NUMERIC(8,2),
+    phosphorus NUMERIC(8,2),
+    potassium NUMERIC(8,2),
+    predicted_yield NUMERIC(10,2),
+    confidence_score NUMERIC(5,2),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+

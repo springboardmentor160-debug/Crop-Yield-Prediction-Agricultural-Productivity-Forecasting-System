@@ -1,16 +1,16 @@
-State,District,Crop,Season,Area_Hectares,Rainfall_mm,Temperature_C,Soil_pH,Yield_Tons
-Andhra Pradesh,Chittoor,Rice,Kharif,120,850,29,6.8,420
-Andhra Pradesh,Anantapur,Groundnut,Kharif,150,620,31,7.1,310
-Telangana,Karimnagar,Rice,Kharif,180,920,28,6.5,580
-Tamil Nadu,Coimbatore,Maize,Rabi,100,450,30,7.0,290
-Karnataka,Mysore,Ragi,Kharif,90,700,27,6.7,250
-Maharashtra,Pune,Sugarcane,Annual,200,800,30,7.2,950
-Punjab,Ludhiana,Wheat,Rabi,170,350,22,7.5,610
-Haryana,Karnal,Wheat,Rabi,160,320,21,7.4,590
-Gujarat,Rajkot,Cotton,Kharif,140,500,32,7.3,280
-Kerala,Palakkad,Rice,Kharif,110,1200,28,6.4,430
-Andhra Pradesh,Nellore,Rice,Rabi,130,780,27,6.6,470
-Telangana,Warangal,Cotton,Kharif,125,540,31,7.2,260
-Tamil Nadu,Thanjavur,Rice,Kharif,145,980,29,6.5,520
-Karnataka,Belagavi,Sugarcane,Annual,190,760,29,7.1,890
-Maharashtra,Nagpur,Soybean,Kharif,135,650,30,6.9,300
+State,District,Crop,Season,Area_Hectares,average_rain_fall_mm_per_year,avg_temp,ph,yield_kg_per_ha
+Andhra Pradesh,Chittoor,Rice,Kharif,120,850,29,6.8,3500.0
+Andhra Pradesh,Anantapur,Groundnut,Kharif,150,620,31,7.1,2066.666666666667
+Telangana,Karimnagar,Rice,Kharif,180,920,28,6.5,3222.222222222222
+Tamil Nadu,Coimbatore,Maize,Rabi,100,450,30,7.0,2900.0
+Karnataka,Mysore,Ragi,Kharif,90,700,27,6.7,2777.777777777778
+Maharashtra,Pune,Sugarcane,Annual,200,800,30,7.2,4750.0
+Punjab,Ludhiana,Wheat,Rabi,170,350,22,7.5,3588.2352941176473
+Haryana,Karnal,Wheat,Rabi,160,320,21,7.4,3687.5
+Gujarat,Rajkot,Cotton,Kharif,140,500,32,7.3,2000.0
+Kerala,Palakkad,Rice,Kharif,110,1200,28,6.4,3909.090909090909
+Andhra Pradesh,Nellore,Rice,Rabi,130,780,27,6.6,3615.3846153846152
+Telangana,Warangal,Cotton,Kharif,125,540,31,7.2,2080.0
+Tamil Nadu,Thanjavur,Rice,Kharif,145,980,29,6.5,3586.206896551724
+Karnataka,Belagavi,Sugarcane,Annual,190,760,29,7.1,4684.210526315789
+Maharashtra,Nagpur,Soybean,Kharif,135,650,30,6.9,2222.222222222222

@@ -2,6 +2,9 @@ import json
 import urllib.request
 import urllib.error
 
+from app.auth_handler import hash_password
+from app.db import execute, fetch_one, initialize_database
+
 BASE_URL = "http://127.0.0.1:8000/api/v1"
 
 def make_request(path, method="GET", data=None, headers=None):
@@ -18,17 +21,24 @@ def make_request(path, method="GET", data=None, headers=None):
     try:
         with urllib.request.urlopen(req) as response:
             res_data = response.read().decode("utf-8")
-            return response.status, json.loads(res_data) if res_data else {}
+            try:
+                return response.status, json.loads(res_data) if res_data else {}
+            except json.JSONDecodeError:
+                return response.status, res_data
     except urllib.error.HTTPError as e:
         err_data = e.read().decode("utf-8")
         print(f"HTTPError: {e.code} on {method} {path} - {err_data}")
-        return e.code, json.loads(err_data) if err_data else {}
+        try:
+            return e.code, json.loads(err_data) if err_data else {}
+        except json.JSONDecodeError:
+            return e.code, err_data
     except Exception as e:
         print(f"Error on {method} {path}: {str(e)}")
         return 500, {"detail": str(e)}
 
 def run_tests():
     print("=== STARTING BACKEND REST API END-TO-END TESTS ===")
+    initialize_database()
     
     # 1. Health Check
     status, body = make_request("/health")
@@ -183,22 +193,22 @@ def run_tests():
     assert status == 200, "List historical failed"
     print(f"[OK] List Historical Passed. Count: {len(body)}")
     
-    # 17. Register Admin
-    admin_payload = {
-        "email": "admin_test@yieldsense.ai",
-        "password": "adminpassword123",
-        "role": "Admin"
-    }
-    status, body = make_request("/register", "POST", admin_payload)
-    if status == 409:
-        print("[INFO] Admin already registered, logging in...")
+    # 17. Seed an administrator directly for integration testing. Production
+    # registration intentionally cannot mint privileged accounts.
+    admin_email = "admin_test@yieldsense.ai"
+    admin_user = fetch_one("SELECT id FROM users WHERE email = ?", (admin_email,))
+    if admin_user:
+        execute("UPDATE users SET role = 'Admin' WHERE id = ?", (admin_user["id"],))
     else:
-        assert status == 200, f"Admin register failed: {body}"
-        print("[OK] Register Admin Passed")
+        execute(
+            "INSERT INTO users (email, password_hash, role) VALUES (?, ?, 'Admin')",
+            (admin_email, hash_password("adminpassword123")),
+        )
+    print("[OK] Administrator test fixture ready")
         
     # 18. Login Admin
     status, body = make_request("/login", "POST", {
-        "email": "admin_test@yieldsense.ai",
+        "email": admin_email,
         "password": "adminpassword123"
     })
     assert status == 200, "Admin login failed"
@@ -211,9 +221,53 @@ def run_tests():
     assert status == 200, f"Admin user listing failed: {body}"
     assert len(body) >= 2, "Should find at least farmer and admin"
     print("[OK] Admin List Users Passed. Registered accounts count:", len(body))
-    
+
+    # 20. Milestone 2: Yield Prediction API
+    pred_payload = {"avg_temp": 27.5, "rainfall": 1200, "soil_ph": 6.8, "crop_name": "Rice"}
+    status, body = make_request("/predict-yield", "POST", pred_payload, headers=headers)
+    assert status == 200, f"Yield prediction failed: {body}"
+    assert "predicted_yield" in body or "predicted_yield_kg_per_ha" in body, "No yield returned"
+    print("[OK] Milestone 2 Yield Prediction API Passed:", body.get("predicted_yield") or body.get("predicted_yield_kg_per_ha"))
+
+    # 21. Milestone 2: Weather Analysis API
+    weather_ana_payload = {"avg_temp": 27.5, "rainfall": 1200}
+    status, body = make_request("/weather-analysis", "POST", weather_ana_payload, headers=headers)
+    assert status == 200, f"Weather analysis failed: {body}"
+    assert "summary" in body or "impact_summary" in body, "No weather summary"
+    print("[OK] Milestone 2 Weather Analysis API Passed:", body.get("summary") or body.get("impact_summary"))
+
+    # 22. Milestone 2: Soil Analysis API
+    soil_ana_payload = {"ph": 6.5, "nitrogen": 90, "phosphorus": 42, "potassium": 58}
+    status, body = make_request("/soil-analysis", "POST", soil_ana_payload, headers=headers)
+    assert status == 200, f"Soil analysis failed: {body}"
+    assert "soil_quality" in body and "recommendation" in body, "Soil analysis keys missing"
+    print("[OK] Milestone 2 Soil Analysis API Passed. Quality:", body["soil_quality"], "| Recommendation:", body["recommendation"])
+
+    # 23. Milestone 3: Recommendations and Risk Assessment API
+    rec_payload = {
+        "crop_type": "Rice",
+        "avg_temp": 38.0,   # high temp -> Heat Stress
+        "rainfall": 250.0,  # low rainfall -> Drought Stress
+        "soil_ph": 5.5,     # acidic soil -> lime
+        "nitrogen": 40.0,   # low nitrogen -> Urea
+        "phosphorus": 30.0,
+        "potassium": 25.0
+    }
+    status, body = make_request("/analytics/recommendations", "POST", rec_payload, headers=headers)
+    assert status == 200, f"Recommendations API failed: {body}"
+    assert body["crop"] == "Rice"
+    assert body["overall_risk_level"] == "High"
+    assert any(risk["type"] == "Drought Stress" for risk in body["identified_risks"])
+    assert any("agricultural lime" in rec for rec in body["actionable_recommendations"])
+    print("[OK] Milestone 3 Recommendations & Risk Assessment API Passed")
+
+    # 24. Milestone 3: Report CSV Export API
+    status, body = make_request("/reports/export-csv", "GET", headers=headers)
+    assert status == 200, f"CSV Export API failed: {body}"
+    assert "predicted_yield" in body or "crop_name" in body or "avg_temp" in body, "CSV header mismatch or empty CSV"
+    print("[OK] Milestone 3 Report CSV Export API Passed")
+
     print("\nALL BACKEND API END-TO-END TESTS PASSED SUCCESSFULLY!")
 
 if __name__ == "__main__":
     run_tests()
-

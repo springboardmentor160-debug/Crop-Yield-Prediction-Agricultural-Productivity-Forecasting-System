@@ -4,7 +4,8 @@ from pydantic import BaseModel, EmailStr, Field
 class RegisterRequest(BaseModel):
     email: EmailStr
     password: str = Field(min_length=8)
-    role: str = Field(default="Farmer", pattern="^(Farmer|Admin|Agriculture Expert)$")
+    # Public registration always creates the least-privileged account.  Roles are
+    # assigned by an administrator outside this endpoint.
 
 
 class LoginRequest(BaseModel):
@@ -16,6 +17,10 @@ class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
     role: str
+
+
+class UserRoleUpdateRequest(BaseModel):
+    role: str = Field(pattern="^(Farmer|Admin|Agriculture Expert)$")
 
 
 class FarmerProfileRequest(BaseModel):
@@ -73,4 +78,46 @@ class HistoricalRecordCreateRequest(BaseModel):
     rainfall: float | None = Field(default=None, ge=0)
     temperature: float | None = Field(default=None, ge=-50, le=60)
     notes: str | None = None
+
+
+class YieldPredictionRequest(BaseModel):
+    crop_name: str | None = Field(default=None, max_length=100)
+    avg_temp: float = Field(ge=-50, le=60)
+    rainfall: float = Field(ge=0)
+    soil_ph: float = Field(ge=0, le=14)
+    nitrogen: float | None = Field(default=None, ge=0)
+    phosphorus: float | None = Field(default=None, ge=0)
+    potassium: float | None = Field(default=None, ge=0)
+    organic_matter: float | None = Field(default=None, ge=0, le=100)
+
+
+class WeatherAnalysisRequest(BaseModel):
+    avg_temp: float = Field(ge=-50, le=60)
+    rainfall: float = Field(ge=0)
+
+
+class SoilAnalysisRequest(BaseModel):
+    ph: float | None = Field(default=None, ge=0, le=14)
+    soil_ph: float | None = Field(default=None, ge=0, le=14)
+    nitrogen: float | None = Field(default=None, ge=0)
+    phosphorus: float | None = Field(default=None, ge=0)
+    potassium: float | None = Field(default=None, ge=0)
+    organic_matter: float | None = Field(default=None, ge=0, le=100)
+
+    def get_ph(self) -> float:
+        if self.ph is not None:
+            return self.ph
+        if self.soil_ph is not None:
+            return self.soil_ph
+        return 6.5
+
+
+class FarmAnalyticsRequest(BaseModel):
+    crop_type: str = Field(min_length=2, max_length=100)
+    avg_temp: float = Field(ge=-50, le=60)
+    rainfall: float = Field(ge=0)
+    soil_ph: float = Field(ge=0, le=14)
+    nitrogen: float = Field(ge=0)
+    phosphorus: float = Field(ge=0)
+    potassium: float = Field(ge=0)
 

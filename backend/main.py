@@ -1,10 +1,13 @@
 import os
 import shutil
+from pathlib import Path
 from fastapi import Depends, FastAPI, HTTPException, UploadFile, File, status
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.auth_handler import create_access_token, get_current_user, hash_password, verify_password, require_admin
 from app.db import execute, fetch_one, fetch_all, initialize_database
+from app.analytics import analyze_soil, analyze_weather
+from app.ml_service import ModelUnavailableError, load_model_artifact, predict_yield
 from app.models import (
     CropRecordCreateRequest,
     FarmCreateRequest,
@@ -15,6 +18,10 @@ from app.models import (
     SoilRecordCreateRequest,
     WeatherRecordCreateRequest,
     HistoricalRecordCreateRequest,
+    YieldPredictionRequest,
+    WeatherAnalysisRequest,
+    SoilAnalysisRequest,
+    UserRoleUpdateRequest,
 )
 from preprocess import run_agri_preprocessing_pipeline
 
@@ -27,11 +34,21 @@ app = FastAPI(
 # Enable CORS for frontend integration
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
+    allow_origins=[origin.strip() for origin in os.getenv("CORS_ORIGINS", "http://localhost:3000").split(",") if origin.strip()],
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+from app.routers import analytics_summary, predict, weather, soil, recommendations, reports
+app.include_router(predict.router)
+app.include_router(weather.router)
+app.include_router(soil.router)
+app.include_router(recommendations.router)
+app.include_router(reports.router)
+app.include_router(analytics_summary.router)
+
+
 
 
 @app.on_event("startup")
@@ -43,7 +60,33 @@ def startup_event():
 
 @app.get("/api/v1/health")
 def health_check():
-    return {"status": "healthy", "service": "YieldSense AI Core Platform"}
+    model_status = "ready"
+    try:
+        artifact = load_model_artifact()
+        model_type = artifact.get("model_type", artifact["model"].__class__.__name__)
+    except ModelUnavailableError:
+        model_status = "missing"
+        model_type = None
+
+    return {
+        "status": "healthy",
+        "service": "YieldSense AI Core Platform",
+        "model_status": model_status,
+        "model_type": model_type,
+    }
+
+
+def require_farm_access(farm_id: int, current_user: dict, *, allow_expert: bool = True) -> dict:
+    """Return a farm only when the caller is its owner or has a privileged role."""
+    farm = fetch_one("SELECT * FROM farms WHERE id = ?", (farm_id,))
+    if not farm:
+        raise HTTPException(status_code=404, detail="Farm not found")
+    privileged = {"Admin"}
+    if allow_expert:
+        privileged.add("Agriculture Expert")
+    if farm["user_id"] != int(current_user["sub"]) and current_user.get("role") not in privileged:
+        raise HTTPException(status_code=403, detail="Not authorized to access this farm")
+    return farm
 
 
 # --- Authentication and Profiles ---
@@ -55,12 +98,13 @@ def register_user(payload: RegisterRequest):
         raise HTTPException(status_code=409, detail="Email is already registered")
 
     password_hash = hash_password(payload.password)
+    role = "Farmer"
     user_id = execute(
         "INSERT INTO users (email, password_hash, role) VALUES (?, ?, ?)",
-        (payload.email, password_hash, payload.role),
+        (payload.email, password_hash, role),
     )
-    token = create_access_token({"sub": str(user_id), "email": payload.email, "role": payload.role})
-    return TokenResponse(access_token=token, role=payload.role)
+    token = create_access_token({"sub": str(user_id), "email": payload.email, "role": role})
+    return TokenResponse(access_token=token, role=role)
 
 
 @app.post("/api/v1/login", response_model=TokenResponse)
@@ -193,6 +237,7 @@ def delete_farm(id: int, current_user: dict = Depends(get_current_user)):
 @app.get("/api/v1/crops")
 def list_crops(farm_id: int | None = None, current_user: dict = Depends(get_current_user)):
     if farm_id:
+        require_farm_access(farm_id, current_user)
         return fetch_all("SELECT * FROM crop_records WHERE farm_id = ? ORDER BY created_at DESC", (farm_id,))
     
     user_id = int(current_user["sub"])
@@ -246,6 +291,7 @@ def update_crop_record(id: int, payload: CropRecordCreateRequest, current_user: 
         raise HTTPException(status_code=404, detail="Crop record not found")
     if crop["user_id"] != user_id and current_user.get("role") != "Admin":
         raise HTTPException(status_code=403, detail="Not authorized to edit this record")
+    require_farm_access(payload.farm_id, current_user)
 
     execute(
         """
@@ -287,6 +333,7 @@ def delete_crop_record(id: int, current_user: dict = Depends(get_current_user)):
 @app.get("/api/v1/soils")
 def list_soil_records(farm_id: int | None = None, current_user: dict = Depends(get_current_user)):
     if farm_id:
+        require_farm_access(farm_id, current_user)
         return fetch_all("SELECT * FROM soil_records WHERE farm_id = ? ORDER BY created_at DESC", (farm_id,))
     
     user_id = int(current_user["sub"])
@@ -338,6 +385,7 @@ def update_soil_record(id: int, payload: SoilRecordCreateRequest, current_user: 
         raise HTTPException(status_code=404, detail="Soil record not found")
     if soil["user_id"] != user_id and current_user.get("role") != "Admin":
         raise HTTPException(status_code=403, detail="Not authorized")
+    require_farm_access(payload.farm_id, current_user)
 
     execute(
         """
@@ -377,6 +425,7 @@ def delete_soil_record(id: int, current_user: dict = Depends(get_current_user)):
 @app.get("/api/v1/weather")
 def list_weather_records(farm_id: int | None = None, current_user: dict = Depends(get_current_user)):
     if farm_id:
+        require_farm_access(farm_id, current_user)
         return fetch_all("SELECT * FROM weather_records WHERE farm_id = ? ORDER BY created_at DESC", (farm_id,))
 
     user_id = int(current_user["sub"])
@@ -426,6 +475,7 @@ def update_weather_record(id: int, payload: WeatherRecordCreateRequest, current_
         raise HTTPException(status_code=404, detail="Weather record not found")
     if weather["user_id"] != user_id and current_user.get("role") != "Admin":
         raise HTTPException(status_code=403, detail="Not authorized")
+    require_farm_access(payload.farm_id, current_user)
 
     execute(
         """
@@ -463,6 +513,7 @@ def delete_weather_record(id: int, current_user: dict = Depends(get_current_user
 @app.get("/api/v1/historical")
 def list_historical_records(farm_id: int | None = None, current_user: dict = Depends(get_current_user)):
     if farm_id:
+        require_farm_access(farm_id, current_user)
         return fetch_all("SELECT * FROM historical_farming_records WHERE farm_id = ? ORDER BY year DESC", (farm_id,))
 
     user_id = int(current_user["sub"])
@@ -514,6 +565,7 @@ def update_historical_record(id: int, payload: HistoricalRecordCreateRequest, cu
         raise HTTPException(status_code=404, detail="Historical record not found")
     if record["user_id"] != user_id and current_user.get("role") != "Admin":
         raise HTTPException(status_code=403, detail="Not authorized")
+    require_farm_access(payload.farm_id, current_user)
 
     execute(
         """
@@ -548,11 +600,22 @@ def delete_historical_record(id: int, current_user: dict = Depends(get_current_u
     return {"message": "Historical record deleted successfully"}
 
 
+@app.post("/api/v1/analyze-weather")
+def create_weather_analysis(payload: WeatherAnalysisRequest, current_user: dict = Depends(get_current_user)):
+    return analyze_weather(payload.avg_temp, payload.rainfall)
+
+
+@app.post("/api/v1/analyze-soil")
+def create_soil_analysis(payload: SoilAnalysisRequest, current_user: dict = Depends(get_current_user)):
+    return analyze_soil(payload.soil_ph, payload.nitrogen, payload.phosphorus, payload.potassium, payload.organic_matter)
+
+
 # --- Dataset Management & Preprocessing ---
 
 @app.post("/api/v1/datasets/upload")
 async def upload_dataset_csv(file: UploadFile = File(...), current_user: dict = Depends(get_current_user)):
-    if not file.filename.endswith(".csv"):
+    filename = Path(file.filename or "").name
+    if not filename or Path(filename).suffix.lower() != ".csv":
         raise HTTPException(status_code=400, detail="Only CSV datasets are accepted")
 
     user_id = int(current_user["sub"])
@@ -562,15 +625,22 @@ async def upload_dataset_csv(file: UploadFile = File(...), current_user: dict = 
     os.makedirs(processed_dir, exist_ok=True)
 
     # Save uploaded raw file
-    raw_path = os.path.join(raw_dir, file.filename)
+    raw_path = os.path.join(raw_dir, f"{user_id}_{filename}")
     with open(raw_path, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
+        shutil.copyfileobj(file.file, buffer, length=1024 * 1024)
 
     file_size = os.path.getsize(raw_path)
-    processed_path = os.path.join(processed_dir, f"clean_{file.filename}")
+    if file_size == 0 or file_size > 20 * 1024 * 1024:
+        os.remove(raw_path)
+        raise HTTPException(status_code=413, detail="CSV files must be between 1 byte and 20 MB")
+    processed_path = os.path.join(processed_dir, f"clean_{user_id}_{filename}")
 
     # Run preprocessing script
     preprocess_result = run_agri_preprocessing_pipeline(raw_path, processed_path)
+    if preprocess_result["status"] != "Completed":
+        if os.path.exists(raw_path):
+            os.remove(raw_path)
+        raise HTTPException(status_code=422, detail=preprocess_result.get("error", "Dataset could not be processed"))
 
     # Store upload metadata in DB
     dataset_id = execute(
@@ -579,7 +649,7 @@ async def upload_dataset_csv(file: UploadFile = File(...), current_user: dict = 
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
-            file.filename,
+            filename,
             processed_path,
             file_size,
             preprocess_result["status"],
@@ -626,7 +696,7 @@ def delete_dataset(id: int, current_user: dict = Depends(get_current_user)):
             pass
 
     # Clean up corresponding raw file if it exists
-    raw_file = os.path.join("data/raw", dataset["filename"])
+    raw_file = os.path.join("data/raw", f"{dataset['uploaded_by']}_{dataset['filename']}")
     if os.path.exists(raw_file):
         try:
             os.remove(raw_file)
@@ -643,3 +713,19 @@ def delete_dataset(id: int, current_user: dict = Depends(get_current_user)):
 def admin_list_users(current_user: dict = Depends(require_admin)):
     return fetch_all("SELECT id, email, role, created_at FROM users ORDER BY created_at DESC")
 
+
+@app.patch("/api/v1/admin/users/{user_id}/role")
+def admin_update_user_role(user_id: int, payload: UserRoleUpdateRequest, current_user: dict = Depends(require_admin)):
+    if user_id == int(current_user["sub"]) and payload.role != "Admin":
+        raise HTTPException(status_code=400, detail="You cannot remove your own administrator access")
+    user = fetch_one("SELECT id FROM users WHERE id = ?", (user_id,))
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    execute("UPDATE users SET role = ? WHERE id = ?", (payload.role, user_id))
+    return {"message": "User role updated", "user_id": user_id, "role": payload.role}
+
+
+@app.get("/api/v1/admin/statistics")
+def admin_statistics(current_user: dict = Depends(require_admin)):
+    tables = ("users", "farms", "crop_records", "soil_records", "weather_records", "dataset_uploads", "prediction_logs")
+    return {table: fetch_one(f"SELECT COUNT(*) AS count FROM {table}")["count"] for table in tables}

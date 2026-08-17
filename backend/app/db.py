@@ -3,7 +3,8 @@ import sqlite3
 from contextlib import contextmanager
 
 
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./yieldsense_dev.db")
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite:///{os.path.join(BASE_DIR, 'yieldsense_dev.db')}")
 
 
 def _sqlite_path() -> str:
@@ -19,6 +20,7 @@ def get_connection():
     if using_sqlite():
         conn = sqlite3.connect(_sqlite_path())
         conn.row_factory = sqlite3.Row
+        conn.execute("PRAGMA foreign_keys = ON")
         try:
             yield conn
             conn.commit()
@@ -145,7 +147,29 @@ def initialize_database():
                 uploaded_at TEXT DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY(uploaded_by) REFERENCES users(id) ON DELETE SET NULL
             )
+            """,
             """
+            CREATE TABLE IF NOT EXISTS prediction_logs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER,
+                crop_name TEXT,
+                avg_temp REAL,
+                rainfall REAL,
+                soil_ph REAL,
+                nitrogen REAL,
+                phosphorus REAL,
+                potassium REAL,
+                predicted_yield REAL,
+                confidence_score REAL,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE SET NULL
+            )
+            """,
+            "CREATE INDEX IF NOT EXISTS idx_farms_user_id ON farms(user_id)",
+            "CREATE INDEX IF NOT EXISTS idx_crops_farm_id ON crop_records(farm_id)",
+            "CREATE INDEX IF NOT EXISTS idx_soils_farm_id ON soil_records(farm_id)",
+            "CREATE INDEX IF NOT EXISTS idx_weather_farm_id ON weather_records(farm_id)",
+            "CREATE INDEX IF NOT EXISTS idx_predictions_user_id ON prediction_logs(user_id)",
         ]
         with get_connection() as conn:
             for statement in statements:
@@ -201,4 +225,3 @@ def execute(query: str, params: tuple = ()):
             if cursor.description:
                 return cursor.fetchone()[0]
             return None
-

@@ -3,7 +3,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "YieldSense AI",
-  description: "Milestone 1 dashboard shell for agricultural productivity forecasting"
+  description: "AI Crop Yield Prediction & Agricultural Productivity Forecasting System"
 };
 
 export default function RootLayout({

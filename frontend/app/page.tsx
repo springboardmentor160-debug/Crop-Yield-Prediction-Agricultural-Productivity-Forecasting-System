@@ -31,8 +31,16 @@ import {
   Activity,
   Layers3,
   UserCheck,
-  ShieldCheck
+  ShieldCheck,
+  Download,
+  Cpu
 } from "lucide-react";
+
+import PredictionForm from "../components/PredictionForm";
+import PredictionCard from "../components/PredictionCard";
+import WeatherCard from "../components/WeatherCard";
+import SoilCard from "../components/SoilCard";
+import { DashboardCharts } from "../components/DashboardCharts";
 
 const API_BASE = "http://localhost:8000/api/v1";
 
@@ -128,6 +136,11 @@ export default function Home() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadingFile, setUploadingFile] = useState<File | null>(null);
   const [preprocessDetails, setPreprocessDetails] = useState<any>(null);
+
+  // Yield prediction state
+  const [predictionLogs, setPredictionLogs] = useState<any[]>([]);
+  const [predictionResult, setPredictionResult] = useState<any>(null);
+  const [predictionLoading, setPredictionLoading] = useState(false);
 
   // Initialize Auth session
   useEffect(() => {
@@ -247,8 +260,21 @@ export default function Home() {
       const datasetsData = datasetsRes.ok ? await datasetsRes.json() : [];
       setDatasets(datasetsData);
 
+      // Load Prediction Logs
+      const predLogsRes = await fetch(`${API_BASE}/reports/predictions`, { headers });
+      const predLogsData = predLogsRes.ok ? await predLogsRes.json() : [];
+      setPredictionLogs(predLogsData);
+
       // Populate activity logs
       const activities: any[] = [];
+      predLogsData.slice(0, 3).forEach((p: any) => {
+        activities.push({
+          type: "Prediction",
+          title: `Yield forecast: ${p.crop_name}`,
+          desc: `Predicted: ${(p.predicted_yield ?? 0).toLocaleString()} kg/ha (Conf: ${p.confidence_score ?? 0}%)`,
+          time: new Date(p.created_at || Date.now()).toLocaleDateString(),
+        });
+      });
       farmsData.slice(0, 3).forEach((f: any) => {
         activities.push({
           type: "Farm",
@@ -778,6 +804,370 @@ export default function Home() {
     }
   };
 
+  const runYieldPrediction = async (formData: any) => {
+    setPredictionLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/predict-yield`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(formData),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.detail || "Yield prediction failed");
+      }
+
+      let recommendationsData = null;
+      try {
+        const recRes = await fetch(`${API_BASE}/analytics/recommendations`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            crop_type: formData.crop_name || "Rice",
+            avg_temp: formData.avg_temp,
+            rainfall: formData.rainfall,
+            soil_ph: formData.soil_ph,
+            nitrogen: formData.nitrogen || 0,
+            phosphorus: formData.phosphorus || 0,
+            potassium: formData.potassium || 0,
+          }),
+        });
+        if (recRes.ok) {
+          recommendationsData = await recRes.json();
+        }
+      } catch (recErr) {
+        console.error("Failed to fetch recommendations:", recErr);
+      }
+
+      setPredictionResult({
+        ...data,
+        recommendations_data: recommendationsData,
+      });
+
+      // Refresh prediction logs
+      try {
+        const predLogsRes = await fetch(`${API_BASE}/reports/predictions`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (predLogsRes.ok) {
+          setPredictionLogs(await predLogsRes.json());
+        }
+      } catch (err) {
+        console.error("Failed to refresh prediction logs:", err);
+      }
+
+      showSuccess("AI Yield prediction completed successfully.");
+    } catch (err: any) {
+      showError(err.message || "Prediction request failed. Ensure the model is trained.");
+    } finally {
+      setPredictionLoading(false);
+    }
+  };
+
+  const downloadCSVReport = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/reports/export-csv`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (!res.ok) {
+        throw new Error("Failed to export CSV report");
+      }
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "yield_predictions_report.csv";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      showSuccess("CSV Report downloaded successfully.");
+    } catch (error) {
+      showError("Could not download CSV report.");
+    }
+  };
+
+  const downloadFarmReportCSV = async (farmId: number, farmName: string) => {
+    try {
+      const res = await fetch(`${API_BASE}/reports/farms/${farmId}/export-csv`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (!res.ok) {
+        throw new Error("Failed to export farm CSV report");
+      }
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `farm_${farmId}_${farmName.replace(/\s+/g, "_")}_report.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      showSuccess(`Report for ${farmName} downloaded successfully.`);
+    } catch (error) {
+      showError(`Could not download report for ${farmName}.`);
+    }
+  };
+
+  const downloadPDFReport = () => {
+    if (!predictionResult) return;
+    
+    const crop = predictionResult.crop_name || "Rice";
+    const yieldValue = predictionResult.predicted_yield ?? predictionResult.predicted_yield_kg_per_ha ?? 0;
+    const confidence = predictionResult.confidence_score ?? 0;
+    const temp = predictionResult.weather_analysis?.avg_temp || predictionResult.weather_analysis?.temperature || "";
+    const rain = predictionResult.weather_analysis?.rainfall || "";
+    const ph = predictionResult.soil_analysis?.ph || predictionResult.soil_analysis?.soil_ph || "";
+    const n = predictionResult.soil_analysis?.nitrogen || 0;
+    const p = predictionResult.soil_analysis?.phosphorus || 0;
+    const k = predictionResult.soil_analysis?.potassium || 0;
+    
+    const recs = predictionResult.recommendations_data?.actionable_recommendations || [];
+    const risks = predictionResult.recommendations_data?.identified_risks || [];
+    const tips = predictionResult.recommendations_data?.best_practice_tips || [];
+    
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) {
+      showError("Pop-up blocked. Please allow pop-ups to print/download PDF.");
+      return;
+    }
+    
+    const recsHtml = recs.map((r: string) => `<li>${r}</li>`).join("");
+    const risksHtml = risks.map((r: any) => `
+      <div style="background-color: #fef2f2; border: 1px solid #fca5a5; padding: 10px; border-radius: 6px; margin-bottom: 10px;">
+        <strong style="color: #991b1b;">${r.type} (${r.severity} Severity)</strong>
+        <p style="margin: 4px 0 0 0; font-size: 13px; color: #7f1d1d;">${r.advice}</p>
+      </div>
+    `).join("");
+    const tipsHtml = tips.map((t: string) => `<li style="font-style: italic; color: #4b5563;">"${t}"</li>`).join("");
+
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>YieldSense AI - Prediction Report</title>
+          <style>
+            body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #1f2937; padding: 30px; line-height: 1.5; }
+            .header { border-bottom: 2px solid #10b981; padding-bottom: 15px; margin-bottom: 30px; display: flex; justify-content: space-between; align-items: center; }
+            .title { font-size: 24px; font-weight: bold; color: #065f46; margin: 0; }
+            .date { font-size: 12px; color: #6b7280; }
+            .metric-grid { display: grid; grid-cols: 3; gap: 20px; margin-bottom: 30px; }
+            .metric-card { background: #f3f4f6; border-radius: 8px; padding: 15px; border-left: 4px solid #10b981; }
+            .metric-title { font-size: 11px; text-transform: uppercase; font-weight: bold; color: #4b5563; }
+            .metric-value { font-size: 28px; font-weight: 800; color: #111827; margin-top: 5px; }
+            .section { margin-bottom: 25px; }
+            .section-title { font-size: 16px; font-weight: bold; color: #111827; border-bottom: 1px solid #e5e7eb; padding-bottom: 6px; margin-bottom: 12px; }
+            .data-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+            .data-table th, .data-table td { border: 1px solid #e5e7eb; padding: 8px 12px; text-align: left; font-size: 14px; }
+            .data-table th { background-color: #f9fafb; font-weight: bold; }
+            ul { padding-left: 20px; margin: 0; }
+            li { margin-bottom: 6px; font-size: 14px; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <div>
+              <h1 class="title">YieldSense AI</h1>
+              <span style="font-size: 12px; color: #059669; font-weight: 600;">Crop Yield Prediction & Decision Support Report</span>
+            </div>
+            <span class="date">Generated: ${new Date().toLocaleString()}</span>
+          </div>
+          
+          <div style="display: flex; gap: 20px; margin-bottom: 25px;">
+            <div class="metric-card" style="flex: 1;">
+              <div class="metric-title">Crop Cultivation Forecast</div>
+              <div class="metric-value">${crop}</div>
+            </div>
+            <div class="metric-card" style="flex: 1; border-left-color: #3b82f6;">
+              <div class="metric-title">Predicted Yield</div>
+              <div class="metric-value">${yieldValue.toLocaleString()} <span style="font-size: 14px; font-weight: normal; color: #6b7280;">kg/ha</span></div>
+            </div>
+            <div class="metric-card" style="flex: 1; border-left-color: #f59e0b;">
+              <div class="metric-title">AI Confidence Score</div>
+              <div class="metric-value">${confidence}%</div>
+            </div>
+          </div>
+
+          <div class="section">
+            <div class="section-title">Input Farm Parameters</div>
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Soil pH</th>
+                  <th>Nitrogen (N)</th>
+                  <th>Phosphorus (P)</th>
+                  <th>Potassium (K)</th>
+                  <th>Avg Temperature</th>
+                  <th>Rainfall</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>${ph}</td>
+                  <td>${n} ppm</td>
+                  <td>${p} ppm</td>
+                  <td>${k} ppm</td>
+                  <td>${temp}°C</td>
+                  <td>${rain} mm</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          ${risksHtml ? `
+          <div class="section">
+            <div class="section-title" style="color: #b91c1c;">Environmental Stress Alerts</div>
+            ${risksHtml}
+          </div>
+          ` : ""}
+
+          ${recsHtml ? `
+          <div class="section">
+            <div class="section-title">Actionable Recommendation & Soil Advice</div>
+            <ul>${recsHtml}</ul>
+          </div>
+          ` : ""}
+
+          ${tipsHtml ? `
+          <div class="section">
+            <div class="section-title">Best Agricultural Practices</div>
+            <ul>${tipsHtml}</ul>
+          </div>
+          ` : ""}
+
+          <div style="margin-top: 50px; border-top: 1px solid #e5e7eb; padding-top: 15px; text-align: center; font-size: 11px; color: #9ca3af;">
+            YieldSense AI Agricultural Productivity System &copy; ${new Date().getFullYear()}
+          </div>
+
+          <script>
+            window.onload = function() {
+              window.print();
+              window.close();
+            };
+          </script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+    showSuccess("PDF Report generated. Click Print/Save to download.");
+  };
+
+  const getLatestClimateAlerts = () => {
+    const alerts = [];
+    if (weather.length > 0) {
+      const latest = weather[0];
+      if (latest.rainfall < 200) {
+        alerts.push({
+          type: "drought",
+          title: "Drought Warning",
+          desc: `Critical rainfall level (${latest.rainfall}mm) registered. Supplement with immediate drip irrigation.`,
+          bg: "bg-rose-50 border-rose-200/50",
+          textColor: "text-rose-800",
+          iconColor: "text-rose-600",
+        });
+      } else if (latest.rainfall > 1200) {
+        alerts.push({
+          type: "flood",
+          title: "Flood Risk Alert",
+          desc: `High rainfall (${latest.rainfall}mm) registered. Clear field drainage channels to prevent root rot.`,
+          bg: "bg-rose-50 border-rose-200/50",
+          textColor: "text-rose-800",
+          iconColor: "text-rose-600",
+        });
+      } else {
+        alerts.push({
+          type: "favorable",
+          title: "Favorable Precipitation Band",
+          desc: `Recent rainfall (${latest.rainfall}mm) supports productive crop development.`,
+          bg: "bg-emerald-50 border-emerald-200/50",
+          textColor: "text-emerald-800",
+          iconColor: "text-emerald-600",
+        });
+      }
+      
+      if (latest.average_temperature > 35) {
+        alerts.push({
+          type: "heat",
+          title: "Extreme Heat Risk",
+          desc: `Temperature is at ${latest.average_temperature}°C. Consider shade netting or morning/evening watering.`,
+          bg: "bg-amber-50 border-amber-200/50",
+          textColor: "text-amber-800",
+          iconColor: "text-amber-600",
+        });
+      } else if (latest.average_temperature < 18) {
+        alerts.push({
+          type: "cold",
+          title: "Cool Temperature Alert",
+          desc: `Cooler temp (${latest.average_temperature}°C) detected. Avoid over-watering and monitor soil status.`,
+          bg: "bg-blue-50 border-blue-200/50",
+          textColor: "text-blue-800",
+          iconColor: "text-blue-600",
+        });
+      }
+    }
+    
+    if (soils.length > 0) {
+      const latest = soils[0];
+      if (latest.ph_value < 5.8) {
+        alerts.push({
+          type: "soil_ph",
+          title: "Acidic Soil Alert",
+          desc: `Soil pH is low (${latest.ph_value}). Apply agricultural lime to raise soil pH to optimal levels.`,
+          bg: "bg-amber-50 border-amber-200/50",
+          textColor: "text-amber-800",
+          iconColor: "text-amber-600",
+        });
+      } else if (latest.ph_value > 7.8) {
+        alerts.push({
+          type: "soil_ph",
+          title: "Alkaline Soil Warning",
+          desc: `Soil pH is high (${latest.ph_value}). Use organic matter or elemental sulfur to adjust soil pH.`,
+          bg: "bg-amber-50 border-amber-200/50",
+          textColor: "text-amber-800",
+          iconColor: "text-amber-600",
+        });
+      }
+    }
+    
+    if (alerts.length === 0) {
+      alerts.push({
+        type: "info",
+        title: "Rainfall Baseline Observation",
+        desc: "Local microclimates indicate precipitation levels are slightly below expected quarterly averages. Add Soil/Weather logs.",
+        bg: "bg-amber-50 border-amber-200/50",
+        textColor: "text-soil",
+        iconColor: "text-amber-600",
+      });
+      alerts.push({
+        type: "drip",
+        title: "Drip Irrigation Advisory",
+        desc: "Optimal watering interval for Loamy soil type is early morning between 05:00 and 08:00 to reduce evaporation.",
+        bg: "bg-teal-50 border-teal-200/50",
+        textColor: "text-teal-800",
+        iconColor: "text-teal-600",
+      });
+    }
+    
+    return alerts;
+  };
+
+  const avgYieldVal = historical.length > 0
+    ? Math.round(historical.reduce((sum, r) => sum + r.yield_amount, 0) / historical.length)
+    : 4250;
+  const soilHealthVal = soils.length > 0 && soils[0].fertility_level ? `${soils[0].fertility_level} Fertility` : "94% Optimal";
+  const weatherStatusVal = weather.length > 0 && weather[0].climate_condition ? weather[0].climate_condition : "Favorable";
+
   return (
     <main className="min-h-screen bg-field font-sans text-ink">
       {/* Top Navbar Banner */}
@@ -1001,6 +1391,7 @@ export default function Home() {
                   { id: "soils", label: "Soil Analysis", icon: Layers },
                   { id: "weather", label: "Climate Logs", icon: CloudRain },
                   { id: "historical", label: "Historical Yields", icon: Calendar },
+                  { id: "predict", label: "Yield Prediction", icon: Cpu },
                   { id: "datasets", label: "Dataset Pipeline", icon: FileText },
                 ].map((item) => {
                   const Icon = item.icon;
@@ -1051,54 +1442,18 @@ export default function Home() {
               {/* TAB 1: DASHBOARD OVERVIEW */}
               {activeTab === "dashboard" && (
                 <div className="space-y-6">
-                  {/* Dashboard Metrics Cards */}
-                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-                    <div className="rounded-xl border border-canopy/10 bg-white p-4.5 shadow-xs flex items-center gap-4">
-                      <div className="grid h-11 w-11 place-items-center rounded-lg bg-emerald-50 text-canopy">
-                        <Tractor className="h-6 w-6" />
-                      </div>
-                      <div>
-                        <p className="text-xs font-semibold text-ink/55 uppercase">Total Farms</p>
-                        <h4 className="text-2xl font-bold text-canopy mt-0.5">{farms.length}</h4>
-                      </div>
-                    </div>
-                    <div className="rounded-xl border border-canopy/10 bg-white p-4.5 shadow-xs flex items-center gap-4">
-                      <div className="grid h-11 w-11 place-items-center rounded-lg bg-amber-50 text-amber-700">
-                        <Sprout className="h-6 w-6" />
-                      </div>
-                      <div>
-                        <p className="text-xs font-semibold text-ink/55 uppercase">Crops Logged</p>
-                        <h4 className="text-2xl font-bold text-canopy mt-0.5">{crops.length}</h4>
-                      </div>
-                    </div>
-                    <div className="rounded-xl border border-canopy/10 bg-white p-4.5 shadow-xs flex items-center gap-4">
-                      <div className="grid h-11 w-11 place-items-center rounded-lg bg-teal-50 text-teal-700">
-                        <Layers className="h-6 w-6" />
-                      </div>
-                      <div>
-                        <p className="text-xs font-semibold text-ink/55 uppercase">Soil Records</p>
-                        <h4 className="text-2xl font-bold text-canopy mt-0.5">{soils.length}</h4>
-                      </div>
-                    </div>
-                    <div className="rounded-xl border border-canopy/10 bg-white p-4.5 shadow-xs flex items-center gap-4">
-                      <div className="grid h-11 w-11 place-items-center rounded-lg bg-blue-50 text-blue-700">
-                        <CloudRain className="h-6 w-6" />
-                      </div>
-                      <div>
-                        <p className="text-xs font-semibold text-ink/55 uppercase">Climate Inputs</p>
-                        <h4 className="text-2xl font-bold text-canopy mt-0.5">{weather.length}</h4>
-                      </div>
-                    </div>
-                    <div className="rounded-xl border border-canopy/10 bg-white p-4.5 shadow-xs flex items-center gap-4">
-                      <div className="grid h-11 w-11 place-items-center rounded-lg bg-purple-50 text-purple-700">
-                        <FileText className="h-6 w-6" />
-                      </div>
-                      <div>
-                        <p className="text-xs font-semibold text-ink/55 uppercase">CSV Datasets</p>
-                        <h4 className="text-2xl font-bold text-canopy mt-0.5">{datasets.length}</h4>
-                      </div>
-                    </div>
-                  </div>
+                  <DashboardCharts
+                    stats={{
+                      totalFarms: farms.length,
+                      totalPredictions: predictionLogs.length,
+                      avgYield: avgYieldVal,
+                      soilHealth: soilHealthVal,
+                      weatherStatus: weatherStatusVal,
+                    }}
+                    historicalRecords={historical}
+                    cropRecords={crops}
+                    predictionLogs={predictionLogs}
+                  />
 
                   <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
                     <div className="space-y-6">
@@ -1147,63 +1502,46 @@ export default function Home() {
                       </div>
 
                       {/* Climate Warnings / Recommendations placeholder */}
-                      <div className="rounded-xl border border-canopy/10 bg-white p-5 shadow-sm">
+                      <div className="rounded-xl border border-canopy/10 bg-white p-5 shadow-sm overflow-y-auto max-h-[350px]">
                         <h3 className="text-base font-bold text-canopy mb-4 flex items-center gap-2">
                           <CloudRain className="h-5 w-5 text-water" />
-                          Climate Alerts & Irrigation Optimization
+                          Climate Alerts &amp; Irrigation Optimization
                         </h3>
                         <div className="grid gap-4 sm:grid-cols-2">
-                          <div className="rounded-lg bg-amber-50 border border-amber-200/50 p-4">
-                            <div className="flex items-start gap-3">
-                              <AlertCircle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
-                              <div>
-                                <span className="font-bold text-soil text-sm block">Rainfall Baseline Observation</span>
-                                <span className="text-xs text-soil/95 mt-1 block">Local microclimates indicate precipitation levels are slightly below expected quarterly averages. Add Soil/Weather logs to optimize farm yields.</span>
+                          {getLatestClimateAlerts().map((alert, idx) => (
+                            <div key={idx} className={`rounded-lg ${alert.bg} p-4`}>
+                              <div className="flex items-start gap-3">
+                                <AlertCircle className={`h-5 w-5 ${alert.iconColor} shrink-0 mt-0.5`} />
+                                <div>
+                                  <span className={`font-bold ${alert.textColor} text-sm block`}>{alert.title}</span>
+                                  <span className={`text-xs ${alert.textColor}/95 mt-1 block`}>{alert.desc}</span>
+                                </div>
                               </div>
                             </div>
-                          </div>
-                          <div className="rounded-lg bg-teal-50 border border-teal-200/50 p-4">
-                            <div className="flex items-start gap-3">
-                              <Droplets className="h-5 w-5 text-teal-600 shrink-0 mt-0.5" />
-                              <div>
-                                <span className="font-bold text-teal-800 text-sm block">Drip Irrigation Advisory</span>
-                                <span className="text-xs text-teal-800/95 mt-1 block">Based on registered humidity (62%), the optimal watering interval for Loamy soil type is early morning between 05:00 and 08:00.</span>
-                              </div>
-                            </div>
-                          </div>
+                          ))}
                         </div>
                       </div>
                     </div>
 
                     {/* AI Prediction Future Card */}
-                    <div className="rounded-xl border border-canopy/20 bg-canopy text-white p-6 shadow-lg flex flex-col justify-between relative overflow-hidden h-fit">
-                      <div className="absolute top-0 right-0 -mt-6 -mr-6 h-28 w-28 rounded-full bg-white/5 blur-xl"></div>
+                    {/* AI Prediction Dashboard Card */}
+                    <div className="rounded-xl border border-emerald-800 bg-slate-900 text-white p-6 shadow-lg flex flex-col justify-between relative overflow-hidden h-fit">
+                      <div className="absolute top-0 right-0 -mt-6 -mr-6 h-28 w-28 rounded-full bg-emerald-500/10 blur-xl"></div>
                       <div className="space-y-4">
-                        <div className="inline-block rounded-full bg-white/10 px-3 py-1 text-[10px] font-bold uppercase tracking-wider">
-                          Product Roadmap Feature
+                        <div className="inline-block rounded-full bg-emerald-500/20 text-emerald-300 px-3 py-1 text-[10px] font-bold uppercase tracking-wider border border-emerald-500/30">
+                          Active System Feature
                         </div>
-                        <h3 className="text-xl font-bold tracking-tight">AI Yield Prediction &amp; Forecasting</h3>
-                        <p className="text-sm text-white/80 leading-relaxed">
-                          In the upcoming phase of YieldSense AI, our machine learning engines (including random forests, XGBoost, and TensorFlow modules) will train on your uploaded historical records, soil nutrients, and temperature datasets to predict yield estimations (kg/ha) with confidence intervals.
+                        <h3 className="text-xl font-bold tracking-tight">AI Yield Prediction Engine</h3>
+                        <p className="text-sm text-slate-350 leading-relaxed">
+                          Run predictive inferences using our trained XGBoost Machine Learning model. Calculate expected yield (kg/ha) with advanced confidence metrics and customized agronomic advice.
                         </p>
-                        <ul className="text-xs text-white/90 space-y-2 border-t border-white/10 pt-4">
-                          <li className="flex items-center gap-2">
-                            <CheckCircle className="h-4.5 w-4.5 text-emerald-400 shrink-0" />
-                            XGBoost / LightGBM yield inference
-                          </li>
-                          <li className="flex items-center gap-2">
-                            <CheckCircle className="h-4.5 w-4.5 text-emerald-400 shrink-0" />
-                            Dynamic soil suitability assessments
-                          </li>
-                          <li className="flex items-center gap-2">
-                            <CheckCircle className="h-4.5 w-4.5 text-emerald-400 shrink-0" />
-                            NPK fertilization balancing engines
-                          </li>
-                        </ul>
-                      </div>
-                      <div className="mt-6 rounded-lg bg-white/10 p-3.5 text-xs text-white/90 flex gap-2">
-                        <Info className="h-4 w-4 shrink-0 text-amber-300 mt-0.5" />
-                        <span>Predictive analysis tools are currently locked. System is gathering telemetry data from registered farms.</span>
+                        <button
+                          onClick={() => setActiveTab("predict")}
+                          className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 px-4 rounded-lg text-xs flex items-center justify-center space-x-1.5 transition-colors shadow-md"
+                        >
+                          <Cpu className="w-4 h-4" />
+                          <span>Access Prediction Console</span>
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -1461,6 +1799,13 @@ export default function Home() {
                                     title="Delete farm asset"
                                   >
                                     <Trash2 className="h-4 w-4" />
+                                  </button>
+                                  <button
+                                    onClick={() => downloadFarmReportCSV(f.id, f.farm_name)}
+                                    className="p-1.5 rounded bg-blue-50 text-blue-800 transition hover:bg-blue-100 border border-blue-200"
+                                    title="Download farm report CSV"
+                                  >
+                                    <Download className="h-4 w-4" />
                                   </button>
                                 </td>
                               </tr>
@@ -2268,6 +2613,20 @@ export default function Home() {
                         </table>
                       </div>
                     )}
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 7.5: AI YIELD PREDICTION & ANALYSIS */}
+              {activeTab === "predict" && (
+                <div className="space-y-6">
+                  <div className="grid gap-6 md:grid-cols-2">
+                    <PredictionForm onPredict={runYieldPrediction} isLoading={predictionLoading} />
+                    <PredictionCard
+                      result={predictionResult}
+                      onDownloadCSV={downloadCSVReport}
+                      onDownloadPDF={downloadPDFReport}
+                    />
                   </div>
                 </div>
               )}
