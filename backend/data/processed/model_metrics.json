@@ -1,0 +1,8 @@
+{
+  "mae": 456.03877766927076,
+  "rmse": 538.9937864425731,
+  "r2": 0.3372299265577594,
+  "training_rows": 15,
+  "test_rows": 4,
+  "model_type": "XGBRegressor"
+}
