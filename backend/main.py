@@ -1,4 +1,5 @@
-from fastapi import FastAPI, Depends, HTTPException, Header
+from fastapi import FastAPI, Depends, HTTPException
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 import joblib
@@ -55,26 +56,23 @@ def get_db():
         db.close()
 
 
-def get_current_user(authorization: str = Header(...)):
-    print("\n========== AUTH DEBUG ==========")
-    print("Authorization Header:", authorization)
+security = HTTPBearer()
 
-    token = authorization.replace("Bearer ", "")
-    print("Extracted Token:", token)
+
+def get_current_user(
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    token = credentials.credentials
 
     payload = verify_access_token(token)
-    print("Decoded Payload:", payload)
 
-    print("================================\n")
-
-    if payload is None:
+    if not payload:
         raise HTTPException(
             status_code=401,
-            detail="Invalid Token"
+            detail="Invalid or expired token"
         )
 
     return payload
-
 # Home Route
 @app.get("/")
 def home():
@@ -165,6 +163,7 @@ def predict_yield(
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user)
 ):
+    weather_data = None
     # --- NEW WEATHER API LOGIC ---
     if data.avg_temp == 0 or data.average_rain_fall_mm_per_year == 0:
         print(f"Fetching live weather for: {data.area}")
