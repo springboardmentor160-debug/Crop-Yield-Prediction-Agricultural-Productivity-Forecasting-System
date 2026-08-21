@@ -1,0 +1,25 @@
+{
+  "model": "Histogram Gradient Boosting Regressor",
+  "target_transform": "log1p",
+  "best_parameters": {
+    "model__min_samples_leaf": 10,
+    "model__max_leaf_nodes": 63,
+    "model__max_iter": 250,
+    "model__max_depth": 12,
+    "model__learning_rate": 0.08,
+    "model__l2_regularization": 1.0
+  },
+  "best_cv_log_mae": 0.156337,
+  "training_seconds": 31.027,
+  "train_mae": 10.747672,
+  "test_mae": 15.278702,
+  "train_rmse": 179.801654,
+  "test_rmse": 249.624301,
+  "train_r2": 0.960822,
+  "test_r2": 0.887877,
+  "train_test_r2_gap": 0.072945,
+  "log_train_mae": 0.102368,
+  "log_test_mae": 0.140607,
+  "log_train_rmse": 0.166111,
+  "log_test_rmse": 0.221995
+}

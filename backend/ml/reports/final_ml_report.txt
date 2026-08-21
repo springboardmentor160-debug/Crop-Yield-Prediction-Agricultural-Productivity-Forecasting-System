@@ -1,0 +1,41 @@
+YieldSense AI - Final ML Model Selection
+======================================================================
+
+SELECTED PRODUCTION MODEL
+----------------------------------------------------------------------
+Random Forest Regressor
+
+RANDOM-SPLIT PERFORMANCE
+----------------------------------------------------------------------
+MAE  : 4.392195
+RMSE : 71.731423
+R²   : 0.990742
+
+TIME-BASED PERFORMANCE
+----------------------------------------------------------------------
+Future MAE  : 11.606862
+Future RMSE : 184.271538
+Future R²   : 0.952185
+
+MODEL-SELECTION REASON
+----------------------------------------------------------------------
+Random Forest achieved the highest overall random-split accuracy, lowest random-split error, strong cross-validation performance, and ensemble stability.
+
+Decision Tree performed better on the specific 2019-2020 chronological test. This temporal result is retained as an important model limitation and monitoring consideration.
+
+FINAL TRAINING
+----------------------------------------------------------------------
+Rows used: 19689
+Year range: 1997-2020
+Training time: 151.1356 seconds
+
+PRODUCTION FILES
+----------------------------------------------------------------------
+C:\Users\Lenovo\yieldsense-ai\backend\ml\artifacts\yield_prediction_pipeline.joblib
+C:\Users\Lenovo\yieldsense-ai\backend\ml\artifacts\model_metadata.json
+
+STATUS
+----------------------------------------------------------------------
+ML model development: COMPLETED
+Production model: Random Forest Regressor
+Next stage: FastAPI prediction integration

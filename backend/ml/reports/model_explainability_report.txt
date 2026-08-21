@@ -1,0 +1,268 @@
+YieldSense AI - Model Explainability Report
+=======================================================
+
+Model: Decision Tree Time-Based Pipeline
+Training period: 1997-2016
+Future test period: 2019-2020
+
+Method: Each input feature is replaced with a reference value. The resulting change in predicted yield estimates the local influence of that feature.
+
+Example 1
+-------------------------------------------------------
+Crop: Sannhamp | State: Andhra Pradesh | Season: Kharif | Year: 2019
+Actual yield: 0.0000
+Predicted yield: 0.0000
+Absolute error: 0.0000
+Top influencing factors:
+- Crop: decreased prediction by 3.2821
+- N: decreased prediction by 1.0755
+- Fertilizer: decreased prediction by 0.3492
+- Annual_Rainfall: no measurable change by 0.0000
+- Area: no measurable change by 0.0000
+
+Example 2
+-------------------------------------------------------
+Crop: Rapeseed &Mustard | State: Arunachal Pradesh | Season: Rabi | Year: 2019
+Actual yield: 1.2217
+Predicted yield: 1.2332
+Absolute error: 0.0115
+Top influencing factors:
+- N: increased prediction by 0.5365
+- total_rainfall_mm: increased prediction by 0.4981
+- Area: increased prediction by 0.2722
+- Crop: increased prediction by 0.0942
+- Fertilizer: no measurable change by 0.0000
+
+Example 3
+-------------------------------------------------------
+Crop: Linseed | State: Nagaland | Season: Rabi | Year: 2019
+Actual yield: 0.8118
+Predicted yield: 0.7885
+Absolute error: 0.0233
+Top influencing factors:
+- Crop: decreased prediction by 1.8150
+- avg_temp_c: decreased prediction by 0.5610
+- Annual_Rainfall: increased prediction by 0.1818
+- N: increased prediction by 0.0918
+- Fertilizer: no measurable change by 0.0000
+
+Example 4
+-------------------------------------------------------
+Crop: Cotton(Lint) | State: Mizoram | Season: Kharif | Year: 2019
+Actual yield: 0.5800
+Predicted yield: 0.6188
+Absolute error: 0.0388
+Top influencing factors:
+- N: decreased prediction by 1.1410
+- P: decreased prediction by 0.5846
+- Crop: decreased prediction by 0.2412
+- avg_temp_c: decreased prediction by 0.1283
+- Crop_Year: increased prediction by 0.1282
+
+Example 5
+-------------------------------------------------------
+Crop: Jowar | State: Gujarat | Season: Kharif | Year: 2019
+Actual yield: 1.4487
+Predicted yield: 1.5089
+Absolute error: 0.0603
+Top influencing factors:
+- avg_humidity_percent: increased prediction by 0.7637
+- K: increased prediction by 0.7119
+- Crop: decreased prediction by 0.4417
+- Crop_Year: increased prediction by 0.1728
+- Fertilizer: no measurable change by 0.0000
+
+Example 6
+-------------------------------------------------------
+Crop: Other Oilseeds | State: Maharashtra | Season: Kharif | Year: 2019
+Actual yield: 0.2714
+Predicted yield: 0.3547
+Absolute error: 0.0833
+Top influencing factors:
+- Crop: decreased prediction by 1.8964
+- N: increased prediction by 0.1195
+- Area: no measurable change by 0.0000
+- Annual_Rainfall: no measurable change by 0.0000
+- Fertilizer: no measurable change by 0.0000
+
+Example 7
+-------------------------------------------------------
+Crop: Moth | State: Haryana | Season: Kharif | Year: 2019
+Actual yield: 0.2083
+Predicted yield: 0.3188
+Absolute error: 0.1105
+Top influencing factors:
+- Crop: decreased prediction by 2.7180
+- State: decreased prediction by 0.6298
+- Crop_Year: increased prediction by 0.2632
+- N: increased prediction by 0.1671
+- Fertilizer: no measurable change by 0.0000
+
+Example 8
+-------------------------------------------------------
+Crop: Other Kharif Pulses | State: Uttarakhand | Season: Kharif | Year: 2020
+Actual yield: 1.0833
+Predicted yield: 0.9493
+Absolute error: 0.1340
+Top influencing factors:
+- Crop: decreased prediction by 2.8406
+- N: increased prediction by 0.4288
+- Area: no measurable change by 0.0000
+- Annual_Rainfall: no measurable change by 0.0000
+- Fertilizer: no measurable change by 0.0000
+
+Example 9
+-------------------------------------------------------
+Crop: Sesamum | State: Puducherry | Season: Rabi | Year: 2019
+Actual yield: 1.0000
+Predicted yield: 0.8390
+Absolute error: 0.1610
+Top influencing factors:
+- Crop: decreased prediction by 2.7415
+- Area: increased prediction by 0.6743
+- Crop_Year: increased prediction by 0.1940
+- N: increased prediction by 0.0397
+- Annual_Rainfall: no measurable change by 0.0000
+
+Example 10
+-------------------------------------------------------
+Crop: Rice | State: Karnataka | Season: Rabi | Year: 2019
+Actual yield: 2.8814
+Predicted yield: 2.6778
+Absolute error: 0.2036
+Top influencing factors:
+- Crop_Year: decreased prediction by 0.6915
+- Area: no measurable change by 0.0000
+- Annual_Rainfall: no measurable change by 0.0000
+- Fertilizer: no measurable change by 0.0000
+- Pesticide: no measurable change by 0.0000
+
+Example 11
+-------------------------------------------------------
+Crop: Mesta | State: Tripura | Season: Kharif | Year: 2019
+Actual yield: 8.5213
+Predicted yield: 8.2726
+Absolute error: 0.2486
+Top influencing factors:
+- State: increased prediction by 7.8394
+- Crop: increased prediction by 7.2139
+- Fertilizer: increased prediction by 2.1806
+- Crop_Year: increased prediction by 0.6833
+- Pesticide: no measurable change by 0.0000
+
+Example 12
+-------------------------------------------------------
+Crop: Khesari | State: Tripura | Season: Rabi | Year: 2019
+Actual yield: 0.6857
+Predicted yield: 0.9829
+Absolute error: 0.2972
+Top influencing factors:
+- total_rainfall_mm: increased prediction by 0.7140
+- Area: increased prediction by 0.2316
+- Crop: decreased prediction by 0.0758
+- Crop_Year: decreased prediction by 0.0371
+- Pesticide: no measurable change by 0.0000
+
+Example 13
+-------------------------------------------------------
+Crop: Bajra | State: Uttar Pradesh | Season: Kharif | Year: 2019
+Actual yield: 1.9009
+Predicted yield: 1.5274
+Absolute error: 0.3735
+Top influencing factors:
+- pH: increased prediction by 1.2314
+- Pesticide: increased prediction by 0.9774
+- Crop: decreased prediction by 0.8743
+- Area: increased prediction by 0.3701
+- Annual_Rainfall: decreased prediction by 0.2680
+
+Example 14
+-------------------------------------------------------
+Crop: Urad | State: Uttarakhand | Season: Summer | Year: 2019
+Actual yield: 1.0200
+Predicted yield: 0.5602
+Absolute error: 0.4598
+Top influencing factors:
+- Crop: decreased prediction by 3.2297
+- Season: increased prediction by 0.3002
+- N: increased prediction by 0.2913
+- Fertilizer: decreased prediction by 0.2759
+- Area: no measurable change by 0.0000
+
+Example 15
+-------------------------------------------------------
+Crop: Wheat | State: Telangana | Season: Rabi | Year: 2019
+Actual yield: 1.7985
+Predicted yield: 1.2051
+Absolute error: 0.5933
+Top influencing factors:
+- Crop: decreased prediction by 2.3753
+- avg_temp_c: increased prediction by 0.4651
+- P: decreased prediction by 0.2863
+- pH: increased prediction by 0.2702
+- Annual_Rainfall: no measurable change by 0.0000
+
+Example 16
+-------------------------------------------------------
+Crop: Other Kharif Pulses | State: Goa | Season: Kharif | Year: 2019
+Actual yield: 0.0000
+Predicted yield: 0.7993
+Absolute error: 0.7993
+Top influencing factors:
+- Crop: decreased prediction by 2.1731
+- Fertilizer: increased prediction by 0.4639
+- avg_temp_c: decreased prediction by 0.1836
+- Area: increased prediction by 0.1544
+- Pesticide: decreased prediction by 0.0789
+
+Example 17
+-------------------------------------------------------
+Crop: Sesamum | State: Maharashtra | Season: Kharif | Year: 2019
+Actual yield: 0.1841
+Predicted yield: 1.4549
+Absolute error: 1.2708
+Top influencing factors:
+- total_rainfall_mm: increased prediction by 1.2647
+- N: increased prediction by 1.2197
+- Crop: decreased prediction by 0.7962
+- Annual_Rainfall: no measurable change by 0.0000
+- Fertilizer: no measurable change by 0.0000
+
+Example 18
+-------------------------------------------------------
+Crop: Rice | State: Uttarakhand | Season: Summer | Year: 2020
+Actual yield: 3.5633
+Predicted yield: 1.3813
+Absolute error: 2.1820
+Top influencing factors:
+- Area: decreased prediction by 2.4087
+- P: decreased prediction by 1.4054
+- avg_temp_c: increased prediction by 0.3225
+- Annual_Rainfall: no measurable change by 0.0000
+- Fertilizer: no measurable change by 0.0000
+
+Example 19
+-------------------------------------------------------
+Crop: Garlic | State: Tamil Nadu | Season: Whole Year | Year: 2019
+Actual yield: 5.5525
+Predicted yield: 0.5333
+Absolute error: 5.0192
+Top influencing factors:
+- Area: decreased prediction by 4.6016
+- Crop: decreased prediction by 2.4767
+- Crop_Year: no measurable change by 0.0000
+- Fertilizer: no measurable change by 0.0000
+- Pesticide: no measurable change by 0.0000
+
+Example 20
+-------------------------------------------------------
+Crop: Coconut | State: Andhra Pradesh | Season: Whole Year | Year: 2019
+Actual yield: 16935.0585
+Predicted yield: 13436.0630
+Absolute error: 3498.9955
+Top influencing factors:
+- Crop: increased prediction by 13432.7809
+- N: increased prediction by 8429.6616
+- Crop_Year: increased prediction by 5173.5041
+- Annual_Rainfall: no measurable change by 0.0000
+- Fertilizer: no measurable change by 0.0000

@@ -1,0 +1,38 @@
+YieldSense AI - Dataset Audit Summary
+==========================================
+
+Historical Crop Yield
+------------------------------------------
+Rows: 19689
+Columns: 10
+Duplicate rows: 0
+Total missing values: 0
+Missing expected columns: []
+Unexpected columns: []
+
+State Soil
+------------------------------------------
+Rows: 30
+Columns: 5
+Duplicate rows: 0
+Total missing values: 0
+Missing expected columns: []
+Unexpected columns: []
+
+State Weather
+------------------------------------------
+Rows: 720
+Columns: 5
+Duplicate rows: 0
+Total missing values: 0
+Missing expected columns: []
+Unexpected columns: []
+
+State Compatibility
+------------------------------------------
+Historical yield states: 30
+Soil states: 30
+Weather states: 30
+Common states: 30
+Yield states missing in soil: []
+Yield states missing in weather: []
