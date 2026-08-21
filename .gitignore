@@ -1,36 +1,80 @@
 # Python
+venv/
+ai/
 __pycache__/
 *.pyc
-.venv/
-venv/
+*.pyo
 
-# Node.js
-node_modules/
-
-# Environment variables
+# Environment
 .env
-.env.local
 
-# VS Code
-.vscode/
+# Database
+*.db
 
-# Build files
-dist/
-build/
-
-# ML Model files
+# ML Model
 *.pkl
-*.joblib
-*.h5
-models/*.model
-models/*.bin
 
-# Windows
+# Node
+node_modules/
+.next/
+
+# OS
+.DS_Store
 Thumbs.db
 
-# Next.js build output
-frontend/.next/
+# IDE
+.vscode/
+.idea/
 
-# Debug/test exports
-test_export.csv
-backend/predictions_test.csv
+
+
+
+
+# ─── Frontend (Next.js) ───
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/.env
+frontend/.env.local
+frontend/.env.*.local
+frontend/npm-debug.log*
+frontend/yarn-debug.log*
+frontend/yarn-error.log*
+frontend/.turbo/
+frontend/*.tsbuildinfo
+frontend/next-env.d.ts
+
+# ─── Backend (Python / FastAPI) ───
+backend/venv/
+backend/__pycache__/
+backend/**/__pycache__/
+backend/*.pyc
+backend/.env
+backend/.pytest_cache/
+backend/.mypy_cache/
+backend/*.egg-info/
+backend/.dist/
+
+# ─── Database ───
+backend/yieldsense.db
+*.sqlite3
+
+# ─── Data ───
+data/raw/*.csv
+data/processed/*.csv
+
+# ─── Docker ───
+**/docker/**/*.env
+
+
+# ─── IDE / Editor ───
+.vscode/
+.idea/
+*.swp
+
+# ─── OS ───
+.DS_Store
+Thumbs.db
+
+# ─── Logs ───
+*.log

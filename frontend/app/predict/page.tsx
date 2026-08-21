@@ -1,287 +1,227 @@
 "use client";
-
 import { useEffect, useState } from "react";
-import { getPrediction, PredictionResponse } from "../../services/predictionApi";
-import { getFarmInsights, AnalyticsResponse } from "../../services/analyticsApi";
+import { useRouter } from "next/navigation";
+import { api } from "@/lib/api";
 
-const CROPS = ["wheat", "rice", "maize"];
-
-const RISK_COLORS: Record<string, { bg: string; text: string; border: string }> = {
-  Low: { bg: "#f0fdf4", text: "#15803d", border: "#bbf7d0" },
-  Medium: { bg: "#fffbeb", text: "#b45309", border: "#fde68a" },
-  High: { bg: "#fef2f2", text: "#b91c1c", border: "#fecaca" },
-};
+interface Farm { id: number; farm_name: string; location: string; }
+interface Recommendation { category: string; message: string; priority: string; }
+interface PredictionResult {
+  predicted_yield_tons_per_ha: number;
+  confidence_score: number;
+  risk_level: string;
+  recommendations: Recommendation[];
+}
 
 export default function PredictPage() {
-  const [cropType, setCropType] = useState("wheat");
-  const [region, setRegion] = useState("");
+  const router = useRouter();
+  const [farms, setFarms] = useState<Farm[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<PredictionResult | null>(null);
+  const [form, setForm] = useState({
+    farm_id: "",
+    crop_type: "wheat",
+    rainfall_mm: "850",
+    temperature_c: "25",
+    humidity_percent: "65",
+    soil_ph: "6.5",
+    nitrogen: "80",
+    phosphorus: "40",
+    potassium: "60",
+  });
 
   useEffect(() => {
-    const raw = localStorage.getItem("ys_profile");
-
-    if (!raw) return;
-
-    try {
-      const profile = JSON.parse(raw);
-
-      if (profile?.district && profile?.state) {
-        setRegion(`${profile.district}, ${profile.state}`);
-      }
-    } catch (error) {
-      console.error("Failed to load profile:", error);
-      // Leave region empty so the user can enter it manually.
-    }
+    const token = localStorage.getItem("token");
+    if (!token) { router.push("/"); return; }
+    api.getFarms().then(setFarms).catch(() => router.push("/"));
   }, []);
 
-  const [soilPh, setSoilPh] = useState("6.5");
-  const [nitrogen, setNitrogen] = useState("120");
-  const [phosphorus, setPhosphorus] = useState("60");
-  const [potassium, setPotassium] = useState("40");
-  const [avgTemp, setAvgTemp] = useState("28");
-  const [rainfall, setRainfall] = useState("700");
-
-  const [result, setResult] = useState<PredictionResponse | null>(null);
-  const [insights, setInsights] = useState<AnalyticsResponse | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [insightsLoading, setInsightsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [insightsError, setInsightsError] = useState<string | null>(null);
-
-  async function handleSubmit(e: React.FormEvent) {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setInsightsLoading(true);
-    setError(null);
-    setInsightsError(null);
     setResult(null);
-    setInsights(null);
-
     try {
-      const response = await getPrediction({
-        crop_type: cropType,
-        region,
-        soil_ph: parseFloat(soilPh),
-        nitrogen_kg_ha: parseFloat(nitrogen),
-        phosphorus_kg_ha: parseFloat(phosphorus),
-        potassium_kg_ha: parseFloat(potassium),
+      const data = await api.predict({
+        farm_id: parseInt(form.farm_id),
+        crop_type: form.crop_type,
+        rainfall_mm: parseFloat(form.rainfall_mm),
+        temperature_c: parseFloat(form.temperature_c),
+        humidity_percent: parseFloat(form.humidity_percent),
+        soil_ph: parseFloat(form.soil_ph),
+        nitrogen: parseFloat(form.nitrogen),
+        phosphorus: parseFloat(form.phosphorus),
+        potassium: parseFloat(form.potassium),
       });
-      setResult(response);
-    } catch (err: any) {
-      setError(err.message || "Something went wrong");
+      setResult(data);
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : "Prediction failed");
     } finally {
       setLoading(false);
     }
+  };
 
-    try {
-      const capitalizedCrop = (cropType[0].toUpperCase() + cropType.slice(1)) as
-        | "Wheat"
-        | "Rice"
-        | "Maize";
+  const riskColor = (risk: string) => {
+    if (risk === "Low") return "#22c55e";
+    if (risk === "Medium") return "#f59e0b";
+    return "#ef4444";
+  };
 
-      const insightsResponse = await getFarmInsights({
-        crop_type: capitalizedCrop,
-        avg_temp: parseFloat(avgTemp),
-        rainfall: parseFloat(rainfall),
-        soil_ph: parseFloat(soilPh),
-        nitrogen: parseFloat(nitrogen),
-        phosphorus: parseFloat(phosphorus),
-        potassium: parseFloat(potassium),
-      });
-      setInsights(insightsResponse);
-    } catch (err: any) {
-      setInsightsError(err.message || "Could not load risk assessment");
-    } finally {
-      setInsightsLoading(false);
-    }
-  }
+  const priorityColor = (p: string) => {
+    if (p === "high") return "#ef4444";
+    if (p === "medium") return "#f59e0b";
+    return "#22c55e";
+  };
 
   return (
-    <div className="page">
-      <h1>Predict Crop Yield</h1>
-      <p className="subtitle">Enter your field conditions to get a live prediction.</p>
+    <div style={{ minHeight: "100vh", backgroundColor: "#0a0f0a", fontFamily: "'Segoe UI', system-ui, sans-serif", color: "#ffffff" }}>
 
-      <form onSubmit={handleSubmit} className="card">
-        <label>
-          Crop Type
-          <select value={cropType} onChange={(e) => setCropType(e.target.value)}>
-            {CROPS.map((c) => (
-              <option key={c} value={c}>{c[0].toUpperCase() + c.slice(1)}</option>
-            ))}
-          </select>
-        </label>
+      {/* Navbar */}
+      <nav style={{ backgroundColor: "#0d1a0d", borderBottom: "1px solid #1a2e1a", padding: "0 32px", height: "60px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+          <button onClick={() => router.push("/dashboard")} style={{ background: "none", border: "none", color: "#4a7a4a", cursor: "pointer", fontSize: "13px" }}>← Dashboard</button>
+          <div style={{ width: "1px", height: "20px", backgroundColor: "#1a2e1a" }} />
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <span style={{ fontSize: "18px" }}>🌱</span>
+            <span style={{ color: "#22c55e", fontWeight: 700, fontSize: "15px" }}>Yield Prediction</span>
+          </div>
+        </div>
+        <button onClick={() => { localStorage.clear(); router.push("/"); }} style={{ backgroundColor: "transparent", border: "1px solid #1a2e1a", borderRadius: "8px", padding: "6px 14px", color: "#6b9e6b", cursor: "pointer", fontSize: "12px" }}>Sign Out</button>
+      </nav>
 
-        <label>
-          Region
-          <input value={region} onChange={(e) => setRegion(e.target.value)} placeholder="e.g. Central Delhi, Delhi" />
-        </label>
+      <div style={{ padding: "32px", maxWidth: "1200px", margin: "0 auto" }}>
 
-        <div className="grid">
-          <label>
-            Soil pH
-            <input type="number" step="0.1" value={soilPh} onChange={(e) => setSoilPh(e.target.value)} />
-          </label>
-          <label>
-            Nitrogen (kg/ha)
-            <input type="number" value={nitrogen} onChange={(e) => setNitrogen(e.target.value)} />
-          </label>
-          <label>
-            Phosphorus (kg/ha)
-            <input type="number" value={phosphorus} onChange={(e) => setPhosphorus(e.target.value)} />
-          </label>
-          <label>
-            Potassium (kg/ha)
-            <input type="number" value={potassium} onChange={(e) => setPotassium(e.target.value)} />
-          </label>
-          <label>
-            Avg Temperature (Celsius)
-            <input type="number" step="0.1" value={avgTemp} onChange={(e) => setAvgTemp(e.target.value)} />
-          </label>
-          <label>
-            Rainfall (mm)
-            <input type="number" value={rainfall} onChange={(e) => setRainfall(e.target.value)} />
-          </label>
+        {/* Header */}
+        <div style={{ marginBottom: "32px" }}>
+          <div style={{ fontSize: "11px", color: "#22c55e", letterSpacing: "0.15em", textTransform: "uppercase", marginBottom: "8px" }}>Module 3</div>
+          <h1 style={{ fontSize: "32px", fontWeight: 800, marginBottom: "8px" }}>AI Crop Yield Prediction</h1>
+          <p style={{ color: "#4a7a4a", fontSize: "14px" }}>Enter farm parameters to get AI-powered yield forecasts</p>
         </div>
 
-        <button type="submit" disabled={loading}>
-          {loading ? "Predicting..." : "Predict Yield"}
-        </button>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "24px" }}>
 
-        {error && <p className="error">{error}</p>}
-      </form>
+          {/* Form */}
+          <div style={{ backgroundColor: "#0d1a0d", border: "1px solid #1a2e1a", borderRadius: "16px", padding: "28px" }}>
+            <div style={{ fontSize: "11px", color: "#4a7a4a", letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: "20px" }}>Farm Parameters</div>
 
-      {loading && (
-        <div className="result-card skeleton">
-          <div className="skel-line skel-label" />
-          <div className="skel-line skel-value" />
-          <div className="skel-line skel-sub" />
-          <div className="skel-line skel-sub short" />
-        </div>
-      )}
+            <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
 
-      {!loading && result && (
-        <div className="result-card">
-          <p className="label">Predicted Yield — {cropType[0].toUpperCase() + cropType.slice(1)}</p>
-          <p className="value">{result.predicted_yield_kg_ha.toLocaleString()} kg/ha</p>
-          <p className="sub">Soil suitability: {(result.soil_suitability_score * 100).toFixed(0)}%</p>
-          <p className="sub">Model: {result.model_version}</p>
-        </div>
-      )}
+              {/* Farm Select */}
+              <div>
+                <label style={{ display: "block", fontSize: "11px", color: "#6b9e6b", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: "8px" }}>Select Farm *</label>
+                <select value={form.farm_id} onChange={e => setForm({ ...form, farm_id: e.target.value })} required
+                  style={{ width: "100%", padding: "11px 14px", backgroundColor: "#0a0f0a", border: "1px solid #1a2e1a", borderRadius: "8px", color: "#ffffff", fontSize: "13px", outline: "none", boxSizing: "border-box" }}>
+                  <option value="">Select a farm...</option>
+                  {farms.map(f => <option key={f.id} value={f.id}>{f.farm_name} — {f.location}</option>)}
+                </select>
+              </div>
 
-      {insightsLoading && (
-        <div className="insights-card skeleton">
-          <div className="skel-line skel-label" />
-          <div className="skel-line skel-sub" />
-          <div className="skel-line skel-sub short" />
-        </div>
-      )}
+              {/* Crop Type */}
+              <div>
+                <label style={{ display: "block", fontSize: "11px", color: "#6b9e6b", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: "8px" }}>Crop Type *</label>
+                <select value={form.crop_type} onChange={e => setForm({ ...form, crop_type: e.target.value })}
+                  style={{ width: "100%", padding: "11px 14px", backgroundColor: "#0a0f0a", border: "1px solid #1a2e1a", borderRadius: "8px", color: "#ffffff", fontSize: "13px", outline: "none", boxSizing: "border-box" }}>
+                  {["wheat", "rice", "maize", "soybean", "cotton", "sugarcane", "barley", "groundnut"].map(c => (
+                    <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>
+                  ))}
+                </select>
+              </div>
 
-      {insightsError && !insightsLoading && (
-        <p className="error" style={{ marginTop: 16 }}>{insightsError}</p>
-      )}
+              {/* Input Grid */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+                {[
+                  { key: "rainfall_mm", label: "Rainfall (mm)", placeholder: "850" },
+                  { key: "temperature_c", label: "Temperature (°C)", placeholder: "25" },
+                  { key: "humidity_percent", label: "Humidity (%)", placeholder: "65" },
+                  { key: "soil_ph", label: "Soil pH", placeholder: "6.5" },
+                  { key: "nitrogen", label: "Nitrogen (kg/ha)", placeholder: "80" },
+                  { key: "phosphorus", label: "Phosphorus (kg/ha)", placeholder: "40" },
+                  { key: "potassium", label: "Potassium (kg/ha)", placeholder: "60" },
+                ].map(field => (
+                  <div key={field.key}>
+                    <label style={{ display: "block", fontSize: "11px", color: "#6b9e6b", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: "6px" }}>{field.label}</label>
+                    <input type="number" step="any" value={form[field.key as keyof typeof form]}
+                      onChange={e => setForm({ ...form, [field.key]: e.target.value })}
+                      placeholder={field.placeholder}
+                      style={{ width: "100%", padding: "10px 12px", backgroundColor: "#0a0f0a", border: "1px solid #1a2e1a", borderRadius: "8px", color: "#ffffff", fontSize: "13px", outline: "none", boxSizing: "border-box" }}
+                      onFocus={e => e.target.style.borderColor = "#22c55e"}
+                      onBlur={e => e.target.style.borderColor = "#1a2e1a"}
+                    />
+                  </div>
+                ))}
+              </div>
 
-      {!insightsLoading && insights && (
-        <div className="insights-card">
-          <div className="insights-header">
-            <p className="label">Risk Assessment</p>
-            <span
-              className="risk-badge"
-              style={{
-                background: RISK_COLORS[insights.overall_risk_level].bg,
-                color: RISK_COLORS[insights.overall_risk_level].text,
-                borderColor: RISK_COLORS[insights.overall_risk_level].border,
-              }}
-            >
-              {insights.overall_risk_level} Risk ({insights.risk_score}/100)
-            </span>
+              <button type="submit" disabled={loading} style={{
+                width: "100%", padding: "14px",
+                background: loading ? "rgba(34,197,94,0.3)" : "linear-gradient(135deg, #22c55e, #16a34a)",
+                border: "none", borderRadius: "10px", color: "#0a0f0a",
+                fontSize: "15px", fontWeight: 800, cursor: loading ? "not-allowed" : "pointer",
+                boxShadow: "0 4px 20px rgba(34,197,94,0.2)",
+              }}>
+                {loading ? "⏳ Running AI Model..." : "🌱 Predict Crop Yield →"}
+              </button>
+            </form>
           </div>
 
-          {insights.identified_risks.length > 0 && (
-            <div className="risk-list">
-              {insights.identified_risks.map((risk, idx) => (
-                <div
-                  key={idx}
-                  className="risk-item"
-                  style={{
-                    background: RISK_COLORS[risk.severity].bg,
-                    borderColor: RISK_COLORS[risk.severity].border,
-                  }}
-                >
-                  <p className="risk-type" style={{ color: RISK_COLORS[risk.severity].text }}>
-                    {risk.type} — {risk.severity}
-                  </p>
-                  <p className="risk-advice">{risk.advice}</p>
+          {/* Results Panel */}
+          <div>
+            {!result ? (
+              <div style={{ backgroundColor: "#0d1a0d", border: "1px solid #1a2e1a", borderRadius: "16px", padding: "28px", height: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center" }}>
+                <div style={{ fontSize: "64px", marginBottom: "20px" }}>🌾</div>
+                <div style={{ fontSize: "18px", fontWeight: 700, color: "#4a7a4a", marginBottom: "8px" }}>Ready to Predict</div>
+                <div style={{ fontSize: "13px", color: "#2a4a2a" }}>Fill in farm parameters and click Predict to get AI-powered yield forecast</div>
+              </div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+
+                {/* Main Result Card */}
+                <div style={{ backgroundColor: "#0d1a0d", border: `1px solid ${riskColor(result.risk_level)}40`, borderRadius: "16px", padding: "28px" }}>
+                  <div style={{ fontSize: "11px", color: "#4a7a4a", letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: "16px" }}>Prediction Result</div>
+
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "24px" }}>
+                    <div>
+                      <div style={{ fontSize: "52px", fontWeight: 900, color: "#22c55e", lineHeight: 1 }}>
+                        {result.predicted_yield_tons_per_ha}
+                      </div>
+                      <div style={{ fontSize: "14px", color: "#4a7a4a", marginTop: "4px" }}>tons per hectare</div>
+                    </div>
+                    <div style={{ textAlign: "right" }}>
+                      <div style={{ fontSize: "11px", color: "#4a7a4a", marginBottom: "6px" }}>RISK LEVEL</div>
+                      <div style={{ fontSize: "16px", fontWeight: 700, color: riskColor(result.risk_level), backgroundColor: `${riskColor(result.risk_level)}15`, border: `1px solid ${riskColor(result.risk_level)}30`, borderRadius: "8px", padding: "6px 14px" }}>
+                        {result.risk_level}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Confidence Bar */}
+                  <div>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
+                      <span style={{ fontSize: "12px", color: "#4a7a4a" }}>Model Confidence</span>
+                      <span style={{ fontSize: "12px", color: "#22c55e", fontWeight: 700 }}>{result.confidence_score}%</span>
+                    </div>
+                    <div style={{ height: "6px", backgroundColor: "#0a0f0a", borderRadius: "3px" }}>
+                      <div style={{ height: "100%", width: `${result.confidence_score}%`, background: "linear-gradient(90deg, #22c55e, #4ade80)", borderRadius: "3px" }} />
+                    </div>
+                  </div>
                 </div>
-              ))}
-            </div>
-          )}
 
-          {insights.identified_risks.length === 0 && (
-            <p className="sub">No significant environmental risks detected for these conditions.</p>
-          )}
-
-          <p className="label" style={{ marginTop: 18 }}>Recommendations</p>
-          <ul className="rec-list">
-            {insights.actionable_recommendations.map((rec, idx) => (
-              <li key={idx}>{rec}</li>
-            ))}
-          </ul>
-
-          <p className="label" style={{ marginTop: 18 }}>Best Practice Tips</p>
-          <ul className="rec-list">
-            {insights.best_practice_tips.map((tip, idx) => (
-              <li key={idx}>{tip}</li>
-            ))}
-          </ul>
+                {/* Recommendations */}
+                <div style={{ backgroundColor: "#0d1a0d", border: "1px solid #1a2e1a", borderRadius: "16px", padding: "24px" }}>
+                  <div style={{ fontSize: "11px", color: "#4a7a4a", letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: "16px" }}>AI Recommendations</div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                    {result.recommendations.map((rec, i) => (
+                      <div key={i} style={{ padding: "14px", backgroundColor: "#0a0f0a", borderRadius: "10px", border: `1px solid ${priorityColor(rec.priority)}25`, borderLeft: `3px solid ${priorityColor(rec.priority)}` }}>
+                        <div style={{ fontSize: "11px", color: priorityColor(rec.priority), fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: "4px" }}>
+                          {rec.category} — {rec.priority.toUpperCase()}
+                        </div>
+                        <div style={{ fontSize: "13px", color: "#6b9e6b", lineHeight: 1.5 }}>{rec.message}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
-      )}
-
-      <style jsx>{`
-        .page { max-width: 640px; margin: 0 auto; padding: 40px 24px; }
-        h1 { font-size: 28px; font-weight: 800; color: #14532d; margin-bottom: 4px; }
-        .subtitle { color: #6b7280; margin-bottom: 24px; }
-        .card { background: white; border-radius: 16px; padding: 28px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); display: flex; flex-direction: column; gap: 16px; }
-        label { display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 600; color: #374151; }
-        input, select { padding: 10px 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px; }
-        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-        button { margin-top: 8px; background: #15803d; color: white; border: none; padding: 12px; border-radius: 10px; font-weight: 700; cursor: pointer; }
-        button:disabled { opacity: 0.6; cursor: not-allowed; }
-        .error { color: #dc2626; font-size: 14px; }
-        .result-card { margin-top: 20px; background: #f0fdf4; border-radius: 16px; padding: 24px; }
-        .label { font-size: 14px; color: #4b5563; font-weight: 600; }
-        .value { font-size: 32px; font-weight: 800; color: #15803d; margin: 4px 0; }
-        .sub { font-size: 13px; color: #6b7280; }
-
-        .insights-card { margin-top: 20px; background: white; border-radius: 16px; padding: 24px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
-        .insights-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
-        .risk-badge { font-size: 13px; font-weight: 700; padding: 6px 12px; border-radius: 999px; border: 1px solid; }
-        .risk-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 4px; }
-        .risk-item { border: 1px solid; border-radius: 10px; padding: 12px 14px; }
-        .risk-type { font-size: 13px; font-weight: 700; margin-bottom: 4px; }
-        .risk-advice { font-size: 13px; color: #4b5563; }
-        .rec-list { margin: 6px 0 0; padding-left: 18px; display: flex; flex-direction: column; gap: 6px; }
-        .rec-list li { font-size: 13px; color: #374151; }
-
-        .skeleton {
-          display: flex;
-          flex-direction: column;
-          gap: 10px;
-        }
-        .skel-line {
-          border-radius: 6px;
-          background: linear-gradient(90deg, #e5e7eb 25%, #f3f4f6 50%, #e5e7eb 75%);
-          background-size: 200% 100%;
-          animation: shimmer 1.4s ease-in-out infinite;
-        }
-        .skel-label { width: 45%; height: 14px; }
-        .skel-value { width: 65%; height: 32px; margin: 4px 0; }
-        .skel-sub { width: 55%; height: 13px; }
-        .skel-sub.short { width: 35%; }
-
-        @keyframes shimmer {
-          0% { background-position: 200% 0; }
-          100% { background-position: -200% 0; }
-        }
-      `}</style>
+      </div>
     </div>
   );
 }

@@ -1,0 +1,11 @@
+.ai
+/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.git/
+.env
+*.db
+.pytest_cache/
