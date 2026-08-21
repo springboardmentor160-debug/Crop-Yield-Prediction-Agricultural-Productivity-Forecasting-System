@@ -1,0 +1,11 @@
+# Pinned for Python 3.7 compatibility.
+# Flask 2.3+ and python-dotenv 1.0+ drop Python 3.7 support, so we stay
+# below those lines. If you later upgrade to Python 3.8+, these versions
+# will still work fine -- there is no need to change anything.
+
+Flask==2.2.5
+Werkzeug==2.2.3
+Flask-Cors==3.0.10
+Flask-SQLAlchemy==2.5.1
+SQLAlchemy==1.4.46
+python-dotenv==0.21.1
