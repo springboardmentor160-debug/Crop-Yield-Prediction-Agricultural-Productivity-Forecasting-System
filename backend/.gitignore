@@ -1,0 +1,24 @@
+# Python
+venv/
+__pycache__/
+*.pyc
+
+# Environment
+.env
+.env.*
+!.env.example
+!.env.local.example
+
+# PostgreSQL
+pgdata/
+
+# Node
+node_modules/
+.next/
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
