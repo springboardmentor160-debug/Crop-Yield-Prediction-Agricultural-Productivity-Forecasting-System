@@ -1,359 +1,314 @@
 "use client";
+import { useEffect, useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
+import { api } from "@/lib/api";
+import { getToken, getStoredUser, clearSession } from "@/lib/auth";
+import type { User, Farm, WeatherDashboard, ModelPerformanceResponse, PredictionHistoryOut } from "@/lib/types";
 
-import { useEffect, useState } from "react";
-import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
-import {
-  Sprout,
-  CloudSun,
-  Layers,
-  LineChart as LineChartIcon,
-  FileText,
-  Bell,
-  ArrowRight,
-  Download,
-} from "lucide-react";
-import Navbar from "../../components/Navbar";
-import { getDashboardSummary, DashboardSummary } from "../../services/dashboardApi";
-import { downloadPredictionsCsv } from "../../services/reportsApi";
-
-// Quick-action tiles shown at the top of the dashboard.
-// Only "Predict Yield" has a dedicated route today — the rest route to
-// /predict as well until their own pages exist (see README/roadmap).
-const QUICK_ACTIONS = [
-  { label: "Predict Yield", icon: Sprout, href: "/predict" },
-  { label: "Weather", icon: CloudSun, href: "/predict" },
-  { label: "Soil Health", icon: Layers, href: "/predict" },
-  { label: "Market Prices", icon: LineChartIcon, href: "/predict" },
-  { label: "Reports", icon: FileText, href: "/predict" },
-  { label: "Alerts", icon: Bell, href: "/predict" },
-];
-
-export default function DashboardPage() {
-  const [data, setData] = useState<DashboardSummary | null>(null);
+export default function LiveDashboard() {
+  const router = useRouter();
+  const [user, setUser] = useState<User | null>(null);
+  const [farms, setFarms] = useState<Farm[]>([]);
+  const [weather, setWeather] = useState<WeatherDashboard | null>(null);
+  const [latestPrediction, setLatestPrediction] = useState<PredictionHistoryOut | null>(null);
+  const [modelMetrics, setModelMetrics] = useState<ModelPerformanceResponse | null>(null);
+  const [historyData, setHistoryData] = useState<PredictionHistoryOut[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [downloading, setDownloading] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
 
-  useEffect(() => {
-    getDashboardSummary()
-      .then(setData)
-      .catch((err) => setError(err.message || "Failed to load dashboard"))
-      .finally(() => setLoading(false));
+  const loadData = useCallback(async () => {
+    try {
+      const [farmsData, weatherData, metricsData, history] =
+        await Promise.all([
+          api.getFarms(),
+          api.getWeatherDashboard("Bhubaneswar"),
+          api.getModelMetrics(),
+          api.getPredictionHistory(),
+        ]);
+      setFarms(farmsData);
+      setWeather(weatherData);
+      setModelMetrics(metricsData);
+      setHistoryData(history || []);
+      if (history && history.length > 0) {
+        setLatestPrediction(history[0]);
+      }
+      setLastUpdated(new Date());
+    } catch (e) {
+      const message = e instanceof Error ? e.message : "Something went wrong";
+      if (/not authenticated|invalid token|permission denied/i.test(message)) {
+        clearSession();
+        router.push("/");
+        return;
+      }
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  async function handleDownload() {
-    setDownloading(true);
-    try {
-      await downloadPredictionsCsv();
-    } catch (err) {
-      console.error("Download failed:", err);
-    } finally {
-      setDownloading(false);
+  useEffect(() => {
+    const token = getToken();
+    if (!token) {
+      clearSession();
+      router.push("/");
+      return;
     }
-  }
+
+    const storedUser = getStoredUser();
+    if (!storedUser) {
+      clearSession();
+      router.push("/");
+      return;
+    }
+
+    setUser(storedUser);
+    loadData();
+    // Auto refresh every 30 seconds
+    const interval = setInterval(loadData, 30000);
+    return () => clearInterval(interval);
+  }, [loadData, router]);
+
+  const alerts = [
+    { type: "warning", icon: "🌧️", message: "Heavy rain expected tomorrow", time: "2h ago" },
+    { type: "info", icon: "💧", message: "Low soil moisture detected", time: "4h ago" },
+    { type: "danger", icon: "🌡️", message: "High temperature warning", time: "6h ago" },
+    { type: "success", icon: "🌾", message: "Harvest season approaching", time: "1d ago" },
+  ];
+
+  const recommendations = [
+    { icon: "🌿", text: "Add Nitrogen Fertilizer", priority: "high" },
+    { icon: "💧", text: "Delay Irrigation 2 days", priority: "medium" },
+    { icon: "🌾", text: "Best Crop: Wheat this season", priority: "high" },
+    { icon: "🦠", text: "Disease Risk: Low", priority: "low" },
+  ];
+
+  const alertColor = (type: string) => {
+    if (type === "warning") return "#f59e0b";
+    if (type === "danger") return "#ef4444";
+    if (type === "success") return "#22c55e";
+    return "#3b82f6";
+  };
+
+  const priorityColor = (p: string) => {
+    if (p === "high") return "#ef4444";
+    if (p === "medium") return "#f59e0b";
+    return "#22c55e";
+  };
+
+  if (loading) return (
+    <div style={{ minHeight: "60vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div style={{ textAlign: "center" }}>
+        <div style={{ fontSize: "48px", marginBottom: "16px" }}>🌾</div>
+        <div style={{ color: "#22c55e", letterSpacing: "0.15em", fontSize: "13px" }}>LOADING YIELDSENSE AI...</div>
+      </div>
+    </div>
+  );
 
   return (
-    <>
-      <Navbar />
-      <div className="page">
-        <h1>Farm Dashboard</h1>
-        <p className="subtitle">Your yield predictions and performance at a glance.</p>
-
-        {/* Quick-action grid */}
-        <div className="quickGrid">
-          {QUICK_ACTIONS.map(({ label, icon: Icon, href }) => (
-            <a key={label} href={href} className="quickTile">
-              <span className="quickIcon">
-                <Icon size={22} strokeWidth={2} />
-              </span>
-              <span className="quickLabel">{label}</span>
-            </a>
-          ))}
+    <div>
+      {/* Greeting row - was a sticky duplicate top bar, now just a content header
+          since DashboardLayout already provides the sidebar + top bar chrome */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "20px" }}>
+        <div>
+          <span style={{ fontSize: "16px", fontWeight: 700 }}>Good day, {user?.full_name} 👋</span>
+          <span style={{ fontSize: "11px", color: "#4a7a4a", marginLeft: "12px" }}>Updated {lastUpdated.toLocaleTimeString()}</span>
         </div>
-
-        {/* Featured promo card */}
-        <a href="/predict" className="promoCard">
-          <div className="promoArt" aria-hidden="true">
-            <Sprout size={48} strokeWidth={1.5} />
-          </div>
-          <div className="promoBody">
-            <p className="promoTitle">Get started with a new prediction</p>
-            <p className="promoText">
-              Enter your field, crop, and season details to generate a fresh yield forecast in seconds.
-            </p>
-            <span className="promoBtn">
-              Start Prediction <ArrowRight size={16} />
-            </span>
-          </div>
-        </a>
-
-        {loading && (
-          <div className="card skeleton">
-            <div className="skel-line skel-label" />
-            <div className="skel-line skel-chart" />
-          </div>
-        )}
-
-        {!loading && error && (
-          <div className="card">
-            <p className="error">{error}</p>
-          </div>
-        )}
-
-        {!loading && !error && data && data.yield_trend.length === 0 && (
-          <div className="card">
-            <p className="empty">
-              Not enough data yet. Make a prediction on the{" "}
-              <a href="/predict" className="link">Predict Yield</a> page to see it show up here.
-            </p>
-          </div>
-        )}
-
-        {!loading && !error && data && data.yield_trend.length > 0 && (
-          <>
-            <div className="card score-card">
-              <p className="label">Productivity Score</p>
-              <p className="score">{data.productivity_score}%</p>
-              <p className="sub">
-                Latest prediction compared to your average across all past predictions.
-              </p>
-            </div>
-
-            <div className="card">
-              <p className="label">Yield Trend</p>
-              <ResponsiveContainer width="100%" height={320}>
-                <LineChart data={data.yield_trend}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                  <XAxis dataKey="season" stroke="#6b7280" fontSize={13} />
-                  <YAxis stroke="#6b7280" fontSize={13} />
-                  <Tooltip
-                    contentStyle={{ borderRadius: 10, border: "1px solid #d1d5db", fontSize: 13 }}
-                    formatter={(value: number) => [`${value.toLocaleString()} kg/ha`, "Yield"]}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="yield"
-                    stroke="#15803d"
-                    strokeWidth={2.5}
-                    dot={{ r: 4, fill: "#15803d" }}
-                    activeDot={{ r: 6 }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-
-            {data.crop_comparison.length > 1 && (
-              <div className="card">
-                <p className="label">Crop Comparison</p>
-                <ResponsiveContainer width="100%" height={280}>
-                  <BarChart data={data.crop_comparison}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                    <XAxis dataKey="name" stroke="#6b7280" fontSize={13} />
-                    <YAxis stroke="#6b7280" fontSize={13} />
-                    <Tooltip
-                      contentStyle={{ borderRadius: 10, border: "1px solid #d1d5db", fontSize: 13 }}
-                      formatter={(value: number) => [`${value.toLocaleString()} kg/ha`, "Avg Yield"]}
-                    />
-                    <Bar dataKey="yield" fill="#15803d" radius={[6, 6, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            )}
-
-            {data.crop_comparison.length === 1 && (
-              <div className="card">
-                <p className="label">Crop Comparison</p>
-                <p className="empty">
-                  Predict yield for a second crop type to unlock the comparison chart.
-                </p>
-              </div>
-            )}
-          </>
-        )}
-
-        {/* Bottom CTA pills */}
-        <div className="ctaRow">
-          <a href="/predict" className="pillBtn pillBtnPrimary">
-            <Sprout size={18} /> New Prediction
-          </a>
-          <button
-            className="pillBtn pillBtnOutline"
-            onClick={handleDownload}
-            disabled={downloading}
-          >
-            <Download size={18} />
-            {downloading ? "Preparing download..." : "Download Report (CSV)"}
-          </button>
+        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <button onClick={loadData} style={{ backgroundColor: "rgba(34,197,94,0.1)", border: "1px solid rgba(34,197,94,0.2)", borderRadius: "6px", padding: "5px 12px", color: "#22c55e", cursor: "pointer", fontSize: "11px" }}>↻ Refresh</button>
+          <button onClick={() => router.push("/predict")} style={{ background: "linear-gradient(135deg, #22c55e, #16a34a)", border: "none", borderRadius: "6px", padding: "5px 14px", color: "#0a0f0a", cursor: "pointer", fontSize: "11px", fontWeight: 700 }}>+ New Prediction</button>
         </div>
-
-        <style jsx>{`
-          .page { max-width: 800px; margin: 0 auto; padding: 40px 24px 100px; }
-          h1 { font-size: 28px; font-weight: 800; color: #14532d; margin-bottom: 4px; }
-          .subtitle { color: #6b7280; margin-bottom: 24px; }
-
-          /* Quick-action grid */
-          .quickGrid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 12px;
-            margin-bottom: 20px;
-          }
-          .quickTile {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            background: var(--color-surface);
-            border: 1px solid var(--color-neutral-200);
-            border-radius: var(--radius-md);
-            padding: 18px 8px;
-            text-decoration: none;
-            box-shadow: var(--shadow-sm);
-            transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
-          }
-          .quickTile:hover {
-            transform: translateY(-2px);
-            box-shadow: var(--shadow-md);
-            border-color: var(--color-primary-500);
-          }
-          .quickIcon {
-            width: 44px;
-            height: 44px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: var(--color-primary-100);
-            color: var(--color-primary-700);
-          }
-          .quickLabel {
-            font-size: 12.5px;
-            font-weight: 600;
-            color: var(--color-neutral-900);
-            text-align: center;
-            line-height: 1.3;
-          }
-
-          /* Featured promo card */
-          .promoCard {
-            display: flex;
-            align-items: center;
-            gap: 20px;
-            background: var(--gradient-primary);
-            border-radius: var(--radius-lg);
-            padding: 24px;
-            margin-bottom: 20px;
-            text-decoration: none;
-            box-shadow: var(--shadow-lg);
-          }
-          .promoArt {
-            flex-shrink: 0;
-            width: 84px;
-            height: 84px;
-            border-radius: 18px;
-            background: rgba(255, 255, 255, 0.16);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #fff;
-          }
-          .promoBody { flex: 1; min-width: 0; }
-          .promoTitle {
-            color: #fff;
-            font-size: 17px;
-            font-weight: 700;
-            margin: 0 0 6px;
-          }
-          .promoText {
-            color: rgba(255, 255, 255, 0.85);
-            font-size: 13.5px;
-            line-height: 1.5;
-            margin: 0 0 14px;
-          }
-          .promoBtn {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            background: #fff;
-            color: var(--color-primary-700);
-            font-size: 13.5px;
-            font-weight: 700;
-            padding: 8px 16px;
-            border-radius: 999px;
-          }
-
-          .card {
-            background: white;
-            border-radius: 16px;
-            padding: 28px;
-            box-shadow: 0 2px 12px rgba(0,0,0,0.06);
-            margin-bottom: 20px;
-          }
-          .label { font-size: 14px; color: #4b5563; font-weight: 600; margin: 0 0 8px; }
-          .score-card { background: #f0fdf4; }
-          .score { font-size: 40px; font-weight: 800; color: #15803d; margin: 4px 0; }
-          .sub { font-size: 13px; color: #6b7280; margin: 4px 0 0; }
-          .error { color: #dc2626; font-size: 14px; }
-          .empty { color: #6b7280; font-size: 14px; line-height: 1.6; }
-          .link { color: #15803d; font-weight: 600; text-decoration: none; }
-          .link:hover { text-decoration: underline; }
-
-          .skeleton { display: flex; flex-direction: column; gap: 14px; }
-          .skel-line {
-            border-radius: 6px;
-            background: linear-gradient(90deg, #e5e7eb 25%, #f3f4f6 50%, #e5e7eb 75%);
-            background-size: 200% 100%;
-            animation: shimmer 1.4s ease-in-out infinite;
-          }
-          .skel-label { width: 30%; height: 14px; }
-          .skel-chart { width: 100%; height: 260px; }
-
-          @keyframes shimmer {
-            0% { background-position: 200% 0; }
-            100% { background-position: -200% 0; }
-          }
-
-          /* Bottom CTA pills */
-          .ctaRow {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            margin-top: 8px;
-          }
-          .pillBtn {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            width: 100%;
-            padding: 14px 20px;
-            border-radius: 999px;
-            font-size: 14.5px;
-            font-weight: 700;
-            text-decoration: none;
-            cursor: pointer;
-            border: none;
-          }
-          .pillBtnPrimary {
-            background: var(--color-primary-500);
-            color: #fff;
-          }
-          .pillBtnPrimary:hover { background: var(--color-primary-700); }
-          .pillBtnOutline {
-            background: #fff;
-            color: var(--color-primary-700);
-            border: 1.5px solid var(--color-primary-500);
-          }
-          .pillBtnOutline:hover { background: var(--color-primary-100); }
-          .pillBtnOutline:disabled { opacity: 0.6; cursor: not-allowed; }
-
-          @media (min-width: 480px) {
-            .quickGrid { grid-template-columns: repeat(6, 1fr); }
-            .ctaRow { flex-direction: row; }
-          }
-        `}</style>
       </div>
-    </>
+
+      {/* Weather + Latest Prediction Row */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "16px", marginBottom: "20px" }}>
+
+        {/* Weather Card */}
+        <div style={{ background: "linear-gradient(135deg, #0d1a3d, #0a0f20)", border: "1px solid #1a1a4a", borderRadius: "14px", padding: "20px" }}>
+          <div style={{ fontSize: "10px", color: "#3b82f6", letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: "12px" }}>🌤️ Current Weather</div>
+          <div style={{ fontSize: "40px", fontWeight: 900, color: "#3b82f6", lineHeight: 1 }}>{weather?.current?.temperature_c || "—"}°C</div>
+          <div style={{ fontSize: "12px", color: "#4a4a7a", marginTop: "6px", marginBottom: "12px" }}>{weather?.current?.condition || "Loading..."}</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
+            <div style={{ backgroundColor: "rgba(59,130,246,0.08)", borderRadius: "6px", padding: "8px", textAlign: "center" }}>
+              <div style={{ fontSize: "14px", fontWeight: 700, color: "#3b82f6" }}>{weather?.current?.humidity_percent || "—"}%</div>
+              <div style={{ fontSize: "10px", color: "#4a4a7a" }}>Humidity</div>
+            </div>
+            <div style={{ backgroundColor: "rgba(59,130,246,0.08)", borderRadius: "6px", padding: "8px", textAlign: "center" }}>
+              <div style={{ fontSize: "14px", fontWeight: 700, color: "#3b82f6" }}>{weather?.current?.rainfall_mm || "—"}mm</div>
+              <div style={{ fontSize: "10px", color: "#4a4a7a" }}>Rainfall</div>
+            </div>
+          </div>
+          <div style={{ fontSize: "10px", color: "#2a2a4a", marginTop: "8px" }}>{weather?.advisory?.recommendations?.[0]?.advice || "Current weather conditions are favorable for normal farming activities."}</div>
+        </div>
+
+        {/* Latest Prediction */}
+        <div style={{ background: "linear-gradient(135deg, #0d2e0d, #0a1a0a)", border: "1px solid #1a4a1a", borderRadius: "14px", padding: "20px" }}>
+          <div style={{ fontSize: "10px", color: "#22c55e", letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: "12px" }}>🌾 Latest Yield Prediction</div>
+          {latestPrediction ? (
+            <>
+              <div style={{ fontSize: "40px", fontWeight: 900, color: "#22c55e", lineHeight: 1 }}>{latestPrediction.predicted_yield_tons_per_ha}</div>
+              <div style={{ fontSize: "12px", color: "#4a7a4a", marginTop: "4px", marginBottom: "12px" }}>tons per hectare · {latestPrediction.crop_type}</div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
+                <div style={{ backgroundColor: "rgba(34,197,94,0.08)", borderRadius: "6px", padding: "8px", textAlign: "center" }}>
+                  <div style={{ fontSize: "14px", fontWeight: 700, color: "#22c55e" }}>{latestPrediction.confidence_score}%</div>
+                  <div style={{ fontSize: "10px", color: "#4a7a4a" }}>AI Confidence</div>
+                </div>
+                <div style={{ backgroundColor: "rgba(34,197,94,0.08)", borderRadius: "6px", padding: "8px", textAlign: "center" }}>
+                  <div style={{ fontSize: "14px", fontWeight: 700, color: latestPrediction.risk_level === "Low" ? "#22c55e" : latestPrediction.risk_level === "Medium" ? "#f59e0b" : "#ef4444" }}>{latestPrediction.risk_level}</div>
+                  <div style={{ fontSize: "10px", color: "#4a7a4a" }}>Risk Level</div>
+                </div>
+              </div>
+            </>
+          ) : (
+            <div style={{ textAlign: "center", padding: "20px 0" }}>
+              <div style={{ fontSize: "24px", marginBottom: "8px" }}>🌱</div>
+              <div style={{ fontSize: "12px", color: "#4a7a4a" }}>No predictions yet</div>
+              <button onClick={() => router.push("/predict")} style={{ marginTop: "12px", backgroundColor: "rgba(34,197,94,0.15)", border: "1px solid rgba(34,197,94,0.3)", borderRadius: "6px", padding: "6px 14px", color: "#22c55e", cursor: "pointer", fontSize: "11px" }}>Make First Prediction →</button>
+            </div>
+          )}
+        </div>
+
+        {/* Model Performance */}
+        <div style={{ background: "linear-gradient(135deg, #1a0a2e, #0f0a1a)", border: "1px solid #2a1a4a", borderRadius: "14px", padding: "20px" }}>
+          <div style={{ fontSize: "10px", color: "#a855f7", letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: "12px" }}>🤖 AI Model Status</div>
+          <div style={{ fontSize: "40px", fontWeight: 900, color: "#a855f7", lineHeight: 1 }}>{modelMetrics?.accuracy_percent || "—"}%</div>
+          <div style={{ fontSize: "12px", color: "#6b4a9e", marginTop: "4px", marginBottom: "12px" }}>Model Accuracy</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
+            <div style={{ backgroundColor: "rgba(168,85,247,0.08)", borderRadius: "6px", padding: "8px", textAlign: "center" }}>
+              <div style={{ fontSize: "13px", fontWeight: 700, color: "#a855f7" }}>{modelMetrics?.mae || "—"}</div>
+              <div style={{ fontSize: "10px", color: "#4a4a5a" }}>MAE t/ha</div>
+            </div>
+            <div style={{ backgroundColor: "rgba(168,85,247,0.08)", borderRadius: "6px", padding: "8px", textAlign: "center" }}>
+              <div style={{ fontSize: "13px", fontWeight: 700, color: "#a855f7" }}>{modelMetrics?.n_crops || "—"}</div>
+              <div style={{ fontSize: "10px", color: "#4a4a5a" }}>Crop Types</div>
+            </div>
+          </div>
+          <div style={{ marginTop: "8px" }}>
+            <div style={{ height: "4px", backgroundColor: "#1a1a2a", borderRadius: "2px" }}>
+              <div style={{ height: "100%", width: `${modelMetrics?.accuracy_percent || 0}%`, background: "linear-gradient(90deg, #a855f7, #c084fc)", borderRadius: "2px" }} />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Stats Row */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "12px", marginBottom: "20px" }}>
+        {[
+          { icon: "🏡", label: "Total Farms", value: farms.length, color: "#22c55e" },
+          { icon: "📊", label: "Predictions Made", value: historyData?.length || 0, color: "#3b82f6" },
+          { icon: "🌾", label: "Avg Yield", value: latestPrediction ? `${latestPrediction.predicted_yield_tons_per_ha} t/ha` : "—", color: "#f59e0b" },
+          { icon: "⚠️", label: "Active Alerts", value: alerts.length, color: "#ef4444" },
+        ].map(s => (
+          <div key={s.label} style={{ backgroundColor: "#0d1a0d", border: "1px solid #1a2e1a", borderRadius: "10px", padding: "16px", display: "flex", alignItems: "center", gap: "12px" }}>
+            <div style={{ fontSize: "24px" }}>{s.icon}</div>
+            <div>
+              <div style={{ fontSize: "20px", fontWeight: 800, color: s.color }}>{s.value}</div>
+              <div style={{ fontSize: "11px", color: "#4a7a4a" }}>{s.label}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Bottom Grid */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginBottom: "16px" }}>
+
+        {/* Alerts */}
+        <div style={{ backgroundColor: "#0d1a0d", border: "1px solid #1a2e1a", borderRadius: "14px", padding: "20px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+            <div style={{ fontSize: "13px", fontWeight: 700 }}>🚨 Smart Alerts</div>
+            <button onClick={() => router.push("/alerts")} style={{ fontSize: "11px", color: "#22c55e", backgroundColor: "transparent", border: "none", cursor: "pointer" }}>View all →</button>
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+            {alerts.map((alert, i) => (
+              <div key={i} style={{ display: "flex", alignItems: "center", gap: "12px", padding: "10px 12px", backgroundColor: "#0a0f0a", borderRadius: "8px", borderLeft: `3px solid ${alertColor(alert.type)}` }}>
+                <span style={{ fontSize: "18px" }}>{alert.icon}</span>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: "12px", fontWeight: 600 }}>{alert.message}</div>
+                  <div style={{ fontSize: "10px", color: "#4a7a4a" }}>{alert.time}</div>
+                </div>
+                <div style={{ width: "6px", height: "6px", borderRadius: "50%", backgroundColor: alertColor(alert.type) }} />
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* AI Recommendations */}
+        <div style={{ backgroundColor: "#0d1a0d", border: "1px solid #1a2e1a", borderRadius: "14px", padding: "20px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+            <div style={{ fontSize: "13px", fontWeight: 700 }}>🤖 AI Recommendations</div>
+            <button onClick={() => router.push("/advisor")} style={{ fontSize: "11px", color: "#22c55e", backgroundColor: "transparent", border: "none", cursor: "pointer" }}>View all →</button>
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+            {recommendations.map((rec, i) => (
+              <div key={i} style={{ display: "flex", alignItems: "center", gap: "12px", padding: "10px 12px", backgroundColor: "#0a0f0a", borderRadius: "8px", border: "1px solid #1a2e1a" }}>
+                <span style={{ fontSize: "18px" }}>{rec.icon}</span>
+                <div style={{ flex: 1, fontSize: "12px", fontWeight: 500 }}>{rec.text}</div>
+                <span style={{ fontSize: "10px", color: priorityColor(rec.priority), backgroundColor: `${priorityColor(rec.priority)}15`, borderRadius: "100px", padding: "2px 8px" }}>{rec.priority}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Farms + Quick Actions */}
+      <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: "16px" }}>
+
+        {/* Farms */}
+        <div style={{ backgroundColor: "#0d1a0d", border: "1px solid #1a2e1a", borderRadius: "14px", padding: "20px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+            <div style={{ fontSize: "13px", fontWeight: 700 }}>🚜 My Farms</div>
+            <button onClick={() => router.push("/farms")} style={{ background: "linear-gradient(135deg, #22c55e, #16a34a)", border: "none", borderRadius: "6px", padding: "6px 14px", color: "#0a0f0a", cursor: "pointer", fontSize: "11px", fontWeight: 700 }}>+ Add Farm</button>
+          </div>
+          {farms.length === 0 ? (
+            <div style={{ textAlign: "center", padding: "30px", color: "#4a7a4a" }}>
+              <div style={{ fontSize: "32px", marginBottom: "10px" }}>🌾</div>
+              <div style={{ fontSize: "13px" }}>No farms yet. Add your first farm!</div>
+            </div>
+          ) : (
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "10px" }}>
+              {farms.map(farm => (
+                <div key={farm.id}
+                  onMouseEnter={e => e.currentTarget.style.borderColor = "#22c55e"}
+                  onMouseLeave={e => e.currentTarget.style.borderColor = "#1a2e1a"}
+                  style={{ backgroundColor: "#0a0f0a", border: "1px solid #1a2e1a", borderRadius: "10px", padding: "14px", cursor: "pointer", transition: "border-color 0.2s" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
+                    <span style={{ fontSize: "18px" }}>🏡</span>
+                    <span style={{ fontSize: "10px", color: "#22c55e", backgroundColor: "rgba(34,197,94,0.1)", borderRadius: "100px", padding: "2px 6px" }}>ACTIVE</span>
+                  </div>
+                  <div style={{ fontSize: "13px", fontWeight: 600, marginBottom: "2px" }}>{farm.farm_name}</div>
+                  <div style={{ fontSize: "11px", color: "#4a7a4a", marginBottom: "8px" }}>{farm.location || "No location"}</div>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "4px" }}>
+                    <div style={{ fontSize: "10px", color: "#6b9e6b" }}>📐 {farm.area_hectares || "—"} ha</div>
+                    <div style={{ fontSize: "10px", color: "#6b9e6b" }}>🧪 pH {farm.soil_ph || "—"}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Quick Actions */}
+        <div style={{ backgroundColor: "#0d1a0d", border: "1px solid #1a2e1a", borderRadius: "14px", padding: "20px" }}>
+          <div style={{ fontSize: "13px", fontWeight: 700, marginBottom: "16px" }}>⚡ Quick Actions</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+            {[
+              { icon: "🌾", label: "Predict Yield", href: "/predict", color: "#22c55e" },
+              { icon: "🌤️", label: "Check Weather", href: "/weather", color: "#3b82f6" },
+              { icon: "🧪", label: "Soil Analysis", href: "/soil", color: "#f59e0b" },
+              { icon: "🤖", label: "AI Advisor", href: "/advisor", color: "#ec4899" },
+              { icon: "📈", label: "Generate Report", href: "/reports", color: "#6366f1" },
+            ].map(action => (
+              <button key={action.href} onClick={() => router.push(action.href)}
+                onMouseEnter={e => e.currentTarget.style.borderColor = action.color}
+                onMouseLeave={e => e.currentTarget.style.borderColor = "#1a2e1a"}
+                style={{ display: "flex", alignItems: "center", gap: "10px", padding: "10px 12px", backgroundColor: "#0a0f0a", border: "1px solid #1a2e1a", borderRadius: "8px", cursor: "pointer", transition: "border-color 0.2s", width: "100%", textAlign: "left" }}>
+                <span style={{ fontSize: "16px" }}>{action.icon}</span>
+                <span style={{ fontSize: "12px", fontWeight: 500, color: "#6b9e6b" }}>{action.label}</span>
+                <span style={{ marginLeft: "auto", color: action.color, fontSize: "12px" }}>→</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }

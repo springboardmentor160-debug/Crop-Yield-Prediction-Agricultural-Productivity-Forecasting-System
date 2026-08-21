@@ -1,73 +1,212 @@
-/* Global styles referencing the design tokens defined in docs/design-system.md */
+@import "tailwindcss";
+
+/* ================================
+   YieldSense AI Professional Theme
+   ================================ */
 
 :root {
-  --color-primary-700: #1B5E20;
-  --color-primary-500: #2E7D32;
-  --color-primary-100: #E8F5E9;
-  --color-accent-amber: #F9A825;
-  --color-secondary-brown: #6D4C31;
-  --color-neutral-900: #1A1A1A;
-  --color-neutral-600: #5F6368;
-  --color-neutral-200: #E0E0E0;
-  --color-surface: #FFFFFF;
-  --color-background: #F7F9F6;
-  --color-success: #2E7D32;
-  --color-error: #C62828;
-  --color-info: #1565C0;
+  /* Backgrounds */
+  --color-bg: #f2f7f3;
+  --color-bg-secondary: #edf5ef;
+  --color-surface: #fbfdfb;
+  --color-surface-hover: #f5faf6;
 
-  /* NEW — elevation, radius, spacing, gradient tokens (see design-system.md §9) */
-  --space-1: 4px;
-  --space-2: 8px;
-  --space-3: 12px;
-  --space-4: 16px;
-  --space-5: 24px;
-  --space-6: 32px;
-  --space-7: 48px;
-  --space-8: 64px;
+  /* Sidebar */
+  --color-sidebar: #e9f3eb;
+  --color-sidebar-hover: #dcefe1;
+  --color-sidebar-active: #cde8d4;
 
-  --radius-sm: 6px;
-  --radius-md: 10px;
-  --radius-lg: 20px;
+  /* Text */
+  --color-ink: #1f2937;
+  --color-ink-soft: #6b7280;
+  --color-heading: #18212b;
 
-  --shadow-sm: 0 1px 2px rgba(26, 26, 26, 0.06);
-  --shadow-md: 0 4px 12px rgba(26, 26, 26, 0.08);
-  --shadow-lg: 0 12px 32px rgba(27, 94, 32, 0.18);
+  /* Brand */
+  --color-primary: #2f7d57;
+  --color-primary-dark: #245f43;
+  --color-primary-light: #dcefe1;
 
-  --gradient-primary: linear-gradient(135deg, var(--color-primary-700), var(--color-primary-500));
+  /* Dashboard Cards */
+  --color-weather: #eef5ff;
+  --color-prediction: #eef9f2;
+  --color-model: #f5f0ff;
+  --color-warning: #fff7e7;
+
+  /* Extras */
+  --color-gold: #d89b3d;
+  --color-sky: #4d91cb;
+  --color-soil: #9c6a44;
+  --color-danger: #d44c43;
+
+  /* Border */
+  --color-border: #d8e4d9;
+
+  /* Shadow */
+  --shadow-card: 0 10px 25px rgba(26, 54, 35, 0.06);
+  --radius: 18px;
+}
+
+/* ================================
+   Global
+   ================================ */
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--color-bg);
+  color: var(--color-ink);
+  font-family: var(--font-body), system-ui, sans-serif;
 }
 
 body {
-  background: var(--color-background);
-  color: var(--color-neutral-900);
-  font-family: Inter, system-ui, sans-serif;
-  margin: 0;
+  min-height: 100vh;
 }
 
-button {
-  background: var(--color-primary-500);
-  color: white;
-  border: none;
-  border-radius: 8px;
-  padding: 0.6rem 1.2rem;
-  font-weight: 600;
-  cursor: pointer;
+/* Typography */
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  color: var(--color-heading);
 }
 
-button:hover {
-  background: var(--color-primary-700);
+p {
+  color: var(--color-ink-soft);
 }
 
-button:disabled {
-  background: var(--color-neutral-200);
-  color: var(--color-neutral-600);
-  cursor: not-allowed;
+.font-display {
+  font-family: var(--font-display), sans-serif;
 }
 
-.stat-card {
+.font-mono-num {
+  font-family: var(--font-mono), monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ================================
+   Cards
+   ================================ */
+
+.card {
   background: var(--color-surface);
-  border: 1px solid var(--color-neutral-200);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
+}
+
+.card:hover {
+  background: var(--color-surface-hover);
+}
+
+/* Dashboard Cards */
+
+.weather-card {
+  background: var(--color-weather);
+}
+
+.prediction-card {
+  background: var(--color-prediction);
+}
+
+.model-card {
+  background: var(--color-model);
+}
+
+.warning-card {
+  background: var(--color-warning);
+}
+
+/* ================================
+   Sidebar
+   ================================ */
+
+.sidebar {
+  background: var(--color-sidebar);
+  border-right: 1px solid var(--color-border);
+}
+
+.sidebar-item {
+  color: var(--color-ink);
   border-radius: 12px;
-  padding: 1rem;
-  flex: 1;
-  min-width: 160px;
+  transition: .25s;
+}
+
+.sidebar-item:hover {
+  background: var(--color-sidebar-hover);
+}
+
+.sidebar-item.active {
+  background: var(--color-sidebar-active);
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+/* ================================
+   Buttons
+   ================================ */
+
+.btn-primary {
+  background: var(--color-primary);
+  color: white;
+  border-radius: 12px;
+  transition: .25s;
+}
+
+.btn-primary:hover {
+  background: var(--color-primary-dark);
+}
+
+.btn-secondary {
+  background: var(--color-primary-light);
+  color: var(--color-primary-dark);
+}
+
+/* ================================
+   Inputs
+   ================================ */
+
+input,
+select,
+textarea {
+  background: white;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  color: var(--color-ink);
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 4px rgba(47,125,87,.15);
+}
+
+/* ================================
+   Scrollbar
+   ================================ */
+
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-bg-secondary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: #b8d7bf;
+  border-radius: 20px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #97c5a3;
 }
