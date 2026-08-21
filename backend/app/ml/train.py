@@ -1,47 +1,105 @@
-import os
+"""
+Train the YieldSense AI yield-prediction model.
+
+Run with:  python -m app.ml.train
+
+Trains a RandomForestRegressor inside a scikit-learn Pipeline (with a
+ColumnTransformer for categorical one-hot encoding), evaluates it with
+a held-out test split, and persists the fitted pipeline + metrics to
+app/ml/artifacts/. This mirrors the "5. Machine Learning Model" stage
+of the architecture diagram (feature engineering -> training ->
+evaluation -> confidence estimation).
+"""
+from __future__ import annotations
+
 import json
+import os
+import time
+
 import joblib
-import pandas as pd
+import numpy as np
+from sklearn.compose import ColumnTransformer
 from sklearn.ensemble import RandomForestRegressor
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from sklearn.model_selection import train_test_split
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
-from app.ml.preprocessing import build_features, FEATURE_COLUMNS, TARGET_COLUMN, CROP_MAPPING
-from app.ml.metrics import evaluate
+from app.core.config import settings
+from app.ml.dataset import generate_training_dataframe
 
-DATA_PATH = "data/processed/training_dataset.csv"
-MODEL_OUT = "models/yield_model_v1.joblib"
-COLUMNS_OUT = "models/feature_columns.json"
+NUMERIC_FEATURES = [
+    "temperature_c",
+    "rainfall_mm",
+    "humidity_pct",
+    "ph_level",
+    "nitrogen_ppm",
+    "phosphorus_ppm",
+    "potassium_ppm",
+    "organic_matter_pct",
+    "area_hectares",
+]
+CATEGORICAL_FEATURES = ["crop_name", "season", "irrigation_type", "soil_texture"]
+TARGET = "yield_kg_per_ha"
 
-def train():
-    raw = pd.read_csv(DATA_PATH)
-    df = build_features(raw)
 
-    X = df[FEATURE_COLUMNS]
-    y = df[TARGET_COLUMN]
+def build_pipeline() -> Pipeline:
+    preprocessor = ColumnTransformer(
+        transformers=[
+            ("num", StandardScaler(), NUMERIC_FEATURES),
+            ("cat", OneHotEncoder(handle_unknown="ignore"), CATEGORICAL_FEATURES),
+        ]
+    )
+    model = RandomForestRegressor(
+        n_estimators=300,
+        max_depth=14,
+        min_samples_leaf=3,
+        random_state=42,
+        n_jobs=-1,
+    )
+    return Pipeline(steps=[("preprocess", preprocessor), ("model", model)])
+
+
+def train_and_save() -> dict:
+    df = generate_training_dataframe(n_samples=6000)
+    X = df[NUMERIC_FEATURES + CATEGORICAL_FEATURES]
+    y = df[TARGET]
 
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-    model = RandomForestRegressor(
-        n_estimators=300, max_depth=12, min_samples_leaf=3, random_state=42, n_jobs=-1,
-    )
-    model.fit(X_train, y_train)
+    pipeline = build_pipeline()
 
-    preds = model.predict(X_test)
-    print("Overall validation metrics:", evaluate(y_test, preds))
+    start = time.time()
+    pipeline.fit(X_train, y_train)
+    train_seconds = time.time() - start
 
-    # Per-crop breakdown, per your mentor's "make sure crops accuracy" requirement
-    inv_map = {v: k for k, v in CROP_MAPPING.items()}
-    breakdown = X_test.copy()
-    breakdown["actual"] = y_test.values
-    breakdown["predicted"] = preds
-    breakdown["crop_type"] = breakdown["crop_type_encoded"].map(inv_map)
-    for crop, group in breakdown.groupby("crop_type"):
-        print(f"  {crop}: {evaluate(group['actual'], group['predicted'])}")
+    preds = pipeline.predict(X_test)
+    mae = mean_absolute_error(y_test, preds)
+    rmse = float(np.sqrt(mean_squared_error(y_test, preds)))
+    r2 = r2_score(y_test, preds)
+    mape = float(np.mean(np.abs((y_test - preds) / y_test)) * 100)
 
-    os.makedirs("models", exist_ok=True)
-    joblib.dump(model, MODEL_OUT)
-    with open(COLUMNS_OUT, "w") as f:
-        json.dump(FEATURE_COLUMNS, f)
+    metrics = {
+        "mae_kg_per_ha": round(mae, 2),
+        "rmse_kg_per_ha": round(rmse, 2),
+        "r2_score": round(r2, 4),
+        "mape_pct": round(mape, 2),
+        "train_seconds": round(train_seconds, 2),
+        "n_train": len(X_train),
+        "n_test": len(X_test),
+        "model_version": "rf-v1",
+    }
+
+    artifact_dir = settings.MODEL_ARTIFACT_DIR
+    os.makedirs(artifact_dir, exist_ok=True)
+    joblib.dump(pipeline, os.path.join(artifact_dir, settings.YIELD_MODEL_FILENAME))
+    with open(os.path.join(artifact_dir, "metrics.json"), "w") as f:
+        json.dump(metrics, f, indent=2)
+
+    print("Training complete.")
+    print(json.dumps(metrics, indent=2))
+    return metrics
+
 
 if __name__ == "__main__":
-    train()
+    train_and_save()
