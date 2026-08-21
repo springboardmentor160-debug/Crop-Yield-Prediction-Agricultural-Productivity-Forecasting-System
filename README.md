@@ -1,63 +1,223 @@
-# YieldSense AI
+# 🌾 YieldSense AI
 
-## Overview
-YieldSense AI predicts crop yield for farmers using machine learning, combined with weather and soil analysis, and provides actionable recommendations and risk assessments to support better farming decisions.
+YieldSense AI is an AI-powered smart agriculture application designed to predict crop yield using agricultural and environmental data.
 
-## Features
-- Crop yield prediction using a Random Forest regression model
-- Weather and soil-based analytics feeding into predictions
-- Analytics dashboard — productivity score, yield trends, crop comparison
-- Rule-based recommendation and risk assessment engine (soil pH, NPK nutrients, rainfall, temperature)
-- Automated backend tests (pytest)
+The project combines a modern React-based frontend with a Python Flask backend to process agricultural information and provide intelligent crop-yield predictions.
 
-## Tech Stack
-**Backend:** FastAPI, PostgreSQL, SQLAlchemy
-**Frontend:** Next.js, React, Recharts
-**ML:** Scikit-learn (RandomForestRegressor), Pandas, NumPy
-**Testing:** Pytest
-**Containerization:** Docker, Docker Compose
+---
 
-## Model Performance
-Evaluated on a held-out test set (not used in training):
-- **R²:** 0.877
-- **MAE:** 543.93 kg/ha
-- **RMSE:** 792.35 kg/ha
+## 📌 Problem Statement
 
-## Setup Instructions
-1. Clone the repository
-2. **Backend:**
+Agriculture is highly dependent on factors such as soil conditions, temperature, rainfall, humidity, crop type, and other environmental parameters.
 
-cd backend
-python -m venv venv
-venv\Scripts\Activate.ps1
-pip install -r requirements.txt
+Accurately estimating crop yield can be difficult because these factors continuously change.
 
-3. **Frontend:**
+YieldSense AI aims to provide a technology-based solution that uses Artificial Intelligence and Machine Learning to analyze agricultural data and predict crop yield.
 
-cd frontend
+---
+
+## 🎯 Objectives
+
+- Predict crop yield using agricultural and environmental data.
+- Provide an easy-to-use web interface.
+- Process prediction requests through a Flask backend.
+- Apply Artificial Intelligence and Machine Learning techniques to agriculture.
+- Help users make data-driven agricultural decisions.
+- Provide a foundation for future smart-farming applications.
+
+---
+
+## ✨ Features
+
+- 🌱 Crop yield prediction
+- 🤖 AI/ML-based prediction
+- 🌦️ Environmental and agricultural data processing
+- 📊 Interactive dashboard
+- ⚡ Fast prediction processing
+- 🔗 Frontend and backend integration
+- 🖥️ User-friendly interface
+- 🔍 Backend health-check API
+
+---
+
+## 🏗️ System Architecture
+
+```text
+                 User
+                   │
+                   ▼
+          React + Vite Frontend
+                   │
+                   │ API Request
+                   ▼
+             Flask Backend
+                   │
+                   ▼
+          AI / ML Processing
+                   │
+                   ▼
+           Yield Prediction
+                   │
+                   ▼
+          Frontend Dashboard
+                   │
+                   ▼
+             User Result
+
+---
+
+## 🛠️ Technologies Used
+
+### Frontend
+- React
+- Vite
+- JavaScript
+- HTML5
+- CSS3
+- Tailwind CSS
+
+### Backend
+- Python
+- Flask
+- Flask-CORS
+- Flask-SQLAlchemy
+- Python-dotenv
+
+### AI / Machine Learning
+- Artificial Intelligence
+- Machine Learning
+- Data Processing
+- Predictive Analysis
+
+### Development Tools
+- Visual Studio Code
+- Git
+- GitHub
+- npm
+- Python
+
+---
+
+## 📂 Project Structure
+
+```text
+yieldsense-ai/
+│
+├── backend/
+│   ├── app.py
+│   ├── models/
+│   └── ...
+│
+├── src/
+│   └── ...
+│
+├── index.html
+├── package.json
+├── package-lock.json
+├── vite.config.js
+├── tailwind.config.js
+├── postcss.config.js
+├── .gitignore
+└── README.md
+---
+
+## ⚙️ Installation
+
+### 1. Clone the Repository
+
+```bash
+git clone https://github.com/macharlamaheshbabu01-hue/yieldsense-ai.git
+cd yieldsense-ai
+🚀 How to Run
+Frontend
+
+Open a terminal in the project root:
+
 npm install
 
-4. **Model:** run `python -m app.ml.train` to train and generate the model locally (see `.gitignore` — trained model files are not committed directly)
-5. **Run backend:** `uvicorn main:app --reload` (from `backend/`)
-6. **Run frontend:** `npm run dev` (from `frontend/`)
+Start the frontend:
 
-## Testing
+npm run dev
+
+The frontend will be available at:
+
+http://localhost:5173/
+Backend
+
+Open a new terminal:
 
 cd backend
-pytest tests/ -v
 
+Install the required dependencies:
 
-## Docker
-Dockerfiles and `docker-compose.yml` are included for backend, frontend, and PostgreSQL, ready to run with:
+pip install flask
+pip install flask-cors
+pip install flask-sqlalchemy
+pip install python-dotenv
 
-docker compose up --build
+Start the Flask backend:
 
-> Note: Not run in this development environment due to virtualization being disabled at the hardware/IT-policy level on this machine (common on managed corporate laptops). Configuration is complete and correct.
+python app.py
 
-## License
-This project is licensed under the MIT License - see [LICENSE](./LICENSE)
+The backend will be available at:
 
-A few notes on what I filled in
-Model Performance numbers — pulled directly from your actual train.py run earlier, not placeholders
-Setup instructions — match your real commands (python -m app.ml.train, uvicorn main:app) instead of the generic handout versions
-Docker note — honest, professional framing of the limitation, not hidden or faked
+http://127.0.0.1:5000
+🔍 Backend API
+Health Check
+
+The backend provides a health-check endpoint to verify that the Flask server is running.
+
+Endpoint:
+
+GET /api/health
+
+URL:
+
+http://127.0.0.1:5000/api/health
+
+Successful Response:
+
+{
+  "message": "YieldSense AI backend is running",
+  "success": true
+}
+📊 Project Workflow
+User
+  │
+  ▼
+Open YieldSense AI Dashboard
+  │
+  ▼
+Enter Agricultural Data
+  │
+  ▼
+React + Vite Frontend
+  │
+  ▼
+API Request
+  │
+  ▼
+Flask Backend
+  │
+  ▼
+Data Processing
+  │
+  ▼
+AI / ML Prediction
+  │
+  ▼
+Prediction Result
+  │
+  ▼
+Display Result on Dashboard
+🌱 Applications
+
+YieldSense AI can be used as a foundation for:
+
+Smart agriculture systems
+Crop yield estimation
+Agricultural decision support
+Data-driven farming
+Precision agriculture
+Smart farming applications
+Future IoT-based agriculture systems
