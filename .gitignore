@@ -1,36 +1,36 @@
 # Python
+venv/
+ai/
 __pycache__/
 *.pyc
-.venv/
-venv/
+*.pyo
 
-# Node.js
-node_modules/
-
-# Environment variables
+# Environment
 .env
-.env.local
 
-# VS Code
-.vscode/
+# Database
+*.db
 
-# Build files
-dist/
-build/
-
-# ML Model files
+# ML Model
 *.pkl
-*.joblib
-*.h5
-models/*.model
-models/*.bin
 
-# Windows
+# Node
+node_modules/
+.next/
+
+# OS
+.DS_Store
 Thumbs.db
 
-# Next.js build output
-frontend/.next/
+# IDE
+.vscode/
+.idea/
 
-# Debug/test exports
-test_export.csv
-backend/predictions_test.csv
+
+node_modules/
+venv/
+__pycache__/
+*.pyc
+.env
+.env.local
+.next/

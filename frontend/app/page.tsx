@@ -1,207 +1,171 @@
-// Landing page — hero + feature highlights, matching the login page's visual language.
-// File: frontend/app/page.tsx
-
 "use client";
-
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-
-export default function LandingPage() {
+import { api } from "@/lib/api";
+ 
+export default function AuthPage() {
   const router = useRouter();
-
+  const [isLogin, setIsLogin] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [form, setForm] = useState({
+    full_name: "",
+    email: "",
+    password: "",
+    role: "Farmer",
+  });
+ 
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    setForm({ ...form, [e.target.name]: e.target.value });
+    setError("");
+  };
+ 
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+    try {
+      let data;
+      if (isLogin) {
+        data = await api.login({ email: form.email, password: form.password });
+      } else {
+        data = await api.register(form);
+      }
+      localStorage.setItem("token", data.access_token);
+      localStorage.setItem("user", JSON.stringify(data.user));
+      router.push("/dashboard");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Something went wrong");
+    } finally {
+      setLoading(false);
+    }
+  };
+ 
   return (
-    <main className="page">
-      <span className="glyph g1" aria-hidden="true">🌾</span>
-      <span className="glyph g2" aria-hidden="true">🌱</span>
-      <span className="glyph g3" aria-hidden="true">🚜</span>
-
-      <section className="hero">
-        <div className="badge">Infosys Internship Project</div>
-        <div className="logo">🌾 YieldSense AI</div>
-        <h1 className="headline">Smart farming decisions start here.</h1>
-        <p className="subhead">
-          Data-driven crop yield predictions and productivity forecasting — built for farmers,
-          cooperatives, agribusinesses, and government officers.
+    <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100 flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-8">
+ 
+        {/* Logo */}
+        <div className="text-center mb-8">
+          <div className="text-4xl mb-2">🌾</div>
+          <h1 className="text-3xl font-bold text-green-700">YieldSense AI</h1>
+          <p className="text-gray-500 text-sm mt-1">
+            AI-powered Agricultural Forecasting
+          </p>
+        </div>
+ 
+        {/* Tab Switch */}
+        <div className="flex bg-gray-100 rounded-xl p-1 mb-6">
+          <button
+            onClick={() => { setIsLogin(true); setError(""); }}
+            className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${
+              isLogin ? "bg-white shadow text-green-700" : "text-gray-500"
+            }`}
+          >
+            Login
+          </button>
+          <button
+            onClick={() => { setIsLogin(false); setError(""); }}
+            className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${
+              !isLogin ? "bg-white shadow text-green-700" : "text-gray-500"
+            }`}
+          >
+            Register
+          </button>
+        </div>
+ 
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {!isLogin && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Full Name
+              </label>
+              <input
+                type="text"
+                name="full_name"
+                value={form.full_name}
+                onChange={handleChange}
+                required={!isLogin}
+                placeholder="John Farmer"
+                className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+              />
+            </div>
+          )}
+ 
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Email
+            </label>
+            <input
+              type="email"
+              name="email"
+              value={form.email}
+              onChange={handleChange}
+              required
+              placeholder="farmer@example.com"
+              className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+            />
+          </div>
+ 
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Password
+            </label>
+            <input
+              type="password"
+              name="password"
+              value={form.password}
+              onChange={handleChange}
+              required
+              placeholder="••••••••"
+              className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+            />
+          </div>
+ 
+          {!isLogin && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Role
+              </label>
+              <select
+                name="role"
+                value={form.role}
+                onChange={handleChange}
+                className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+              >
+                <option value="Farmer">Farmer</option>
+                <option value="Admin">Admin</option>
+                <option value="Analyst">Analyst</option>
+              </select>
+            </div>
+          )}
+ 
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-600 text-sm rounded-lg px-4 py-2.5">
+              {error}
+            </div>
+          )}
+ 
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-2.5 rounded-lg transition-colors disabled:opacity-50"
+          >
+            {loading ? "Please wait..." : isLogin ? "Login" : "Create Account"}
+          </button>
+        </form>
+ 
+        <p className="text-center text-sm text-gray-500 mt-6">
+          {isLogin ? "Do not have an account? " : "Already have an account? "}
+          <button
+            onClick={() => { setIsLogin(!isLogin); setError(""); }}
+            className="text-green-600 font-medium hover:underline"
+          >
+            {isLogin ? "Register" : "Login"}
+          </button>
         </p>
-
-        <div className="ctaRow">
-          <button className="primaryBtn" onClick={() => router.push("/onboarding")}>
-            Get Started 🚜
-          </button>
-          <button className="secondaryBtn" onClick={() => router.push("/login")}>
-            Log In
-          </button>
-        </div>
-      </section>
-
-      <section className="features">
-        <div className="featureCard">
-          <span className="featureIcon">📈</span>
-          <h3>Yield Forecasting</h3>
-          <p>Predictions grounded in historical FAOSTAT, USDA, and district-level data.</p>
-        </div>
-        <div className="featureCard">
-          <span className="featureIcon">💧</span>
-          <h3>Weather-Aware</h3>
-          <p>Recommendations that adapt to your region's climate patterns.</p>
-        </div>
-        <div className="featureCard">
-          <span className="featureIcon">🌱</span>
-          <h3>Soil & Season Insights</h3>
-          <p>Guidance tailored to your crop, season, and soil profile.</p>
-        </div>
-      </section>
-
-      <style jsx>{`
-        .page {
-          position: relative;
-          overflow: hidden;
-          min-height: 100vh;
-          background: #f7f9f6;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-        }
-        .glyph {
-          position: absolute;
-          font-size: 10rem;
-          opacity: 0.06;
-          user-select: none;
-          pointer-events: none;
-        }
-        .g1 { top: -3rem; left: -3rem; transform: rotate(-15deg); }
-        .g2 { top: 20%; right: -4rem; transform: rotate(20deg); font-size: 8rem; }
-        .g3 { bottom: -2rem; left: 8%; transform: rotate(-10deg); font-size: 7rem; }
-
-        .hero {
-          position: relative;
-          z-index: 1;
-          max-width: 640px;
-          text-align: center;
-          padding: 6rem 2rem 3rem;
-        }
-        .badge {
-          display: inline-block;
-          background: #e8f5e9;
-          color: #1b5e20;
-          font-size: 0.8rem;
-          font-weight: 600;
-          padding: 0.35rem 0.9rem;
-          border-radius: 999px;
-          margin-bottom: 1.5rem;
-          animation: fadeInUp 0.5s ease both;
-        }
-        .logo {
-          font-size: 1.5rem;
-          font-weight: 700;
-          color: #1b5e20;
-          margin-bottom: 1rem;
-          animation: fadeInUp 0.5s ease 0.05s both;
-        }
-        .headline {
-          font-size: 2.5rem;
-          font-weight: 800;
-          color: #1a1a1a;
-          line-height: 1.2;
-          margin: 0 0 1rem;
-          animation: fadeInUp 0.5s ease 0.1s both;
-        }
-        .subhead {
-          font-size: 1.05rem;
-          color: #5f6368;
-          line-height: 1.6;
-          margin: 0 0 2.5rem;
-          animation: fadeInUp 0.5s ease 0.15s both;
-        }
-        .ctaRow {
-          display: flex;
-          gap: 1rem;
-          justify-content: center;
-          flex-wrap: wrap;
-          animation: fadeInUp 0.5s ease 0.2s both;
-        }
-        .primaryBtn {
-          background: linear-gradient(135deg, #1b5e20, #2e7d32);
-          color: #fff;
-          border: none;
-          padding: 0.9rem 2rem;
-          font-size: 1rem;
-          font-weight: 600;
-          border-radius: 10px;
-          cursor: pointer;
-          box-shadow: 0 8px 20px rgba(27, 94, 32, 0.25);
-          transition: transform 0.15s ease, box-shadow 0.15s ease;
-        }
-        .primaryBtn:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 12px 28px rgba(27, 94, 32, 0.32);
-        }
-        .secondaryBtn {
-          background: #ffffff;
-          color: #1a1a1a;
-          border: 1px solid #e0e0e0;
-          padding: 0.9rem 2rem;
-          font-size: 1rem;
-          font-weight: 600;
-          border-radius: 10px;
-          cursor: pointer;
-          transition: border-color 0.15s ease, transform 0.15s ease;
-        }
-        .secondaryBtn:hover {
-          border-color: #2e7d32;
-          transform: translateY(-2px);
-        }
-
-        .features {
-          position: relative;
-          z-index: 1;
-          display: flex;
-          gap: 1.5rem;
-          flex-wrap: wrap;
-          justify-content: center;
-          max-width: 960px;
-          padding: 1rem 2rem 5rem;
-        }
-        .featureCard {
-          background: #ffffff;
-          border-radius: 16px;
-          box-shadow: 0 4px 16px rgba(26, 26, 26, 0.06);
-          padding: 2rem 1.5rem;
-          width: 260px;
-          text-align: center;
-          animation: fadeInUp 0.5s ease 0.3s both;
-          transition: transform 0.2s ease, box-shadow 0.2s ease;
-        }
-        .featureCard:hover {
-          transform: translateY(-4px);
-          box-shadow: 0 12px 28px rgba(27, 94, 32, 0.14);
-        }
-        .featureIcon {
-          font-size: 2.25rem;
-          display: block;
-          margin-bottom: 0.75rem;
-        }
-        .featureCard h3 {
-          margin: 0 0 0.5rem;
-          font-size: 1.05rem;
-          color: #1a1a1a;
-        }
-        .featureCard p {
-          margin: 0;
-          font-size: 0.9rem;
-          color: #5f6368;
-          line-height: 1.5;
-        }
-
-        @keyframes fadeInUp {
-          from { opacity: 0; transform: translateY(14px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-
-        @media (max-width: 600px) {
-          .headline { font-size: 1.9rem; }
-          .hero { padding: 4rem 1.25rem 2rem; }
-        }
-      `}</style>
-    </main>
+      </div>
+    </div>
   );
 }
