@@ -1,0 +1,28 @@
+{
+  "selected_model": "Random Forest Regressor",
+  "production_artifact": "C:\\Users\\Lenovo\\yieldsense-ai\\backend\\ml\\artifacts\\yield_prediction_pipeline.joblib",
+  "model_metadata": "C:\\Users\\Lenovo\\yieldsense-ai\\backend\\ml\\artifacts\\model_metadata.json",
+  "selection_status": "approved",
+  "selection_basis": [
+    "Highest random-split prediction accuracy",
+    "Lowest random-split MAE and RMSE",
+    "Strong cross-validation performance",
+    "Ensemble stability across multiple decision trees",
+    "Suitable for nonlinear tabular agricultural data"
+  ],
+  "random_split_metrics": {
+    "mae": 4.392195,
+    "rmse": 71.731423,
+    "r2": 0.990742,
+    "log_mae": 0.099604
+  },
+  "time_based_metrics": {
+    "validation_period": "2017-2018",
+    "test_period": "2019-2020",
+    "future_test_mae": 11.606862,
+    "future_test_rmse": 184.271538,
+    "future_test_r2": 0.952185,
+    "future_log_test_mae": 0.151001
+  },
+  "temporal_validation_note": "Decision Tree performed better on the specific 2019-2020 chronological test. Random Forest was selected for production based on stronger overall random-split, cross-validation, and ensemble robustness. The temporal result remains documented."
+}

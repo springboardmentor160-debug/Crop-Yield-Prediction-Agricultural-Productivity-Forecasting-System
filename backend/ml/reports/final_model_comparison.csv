@@ -1,0 +1,6 @@
+model,random_test_mae,random_test_rmse,random_test_r2,random_log_test_mae,random_training_seconds,future_validation_mae,future_validation_rmse,future_validation_r2,future_test_mae,future_test_rmse,future_test_r2,future_log_test_mae,future_training_seconds,future_train_test_r2_gap,has_future_validation,future_rank,random_rank
+Decision Tree,6.42781,113.187188,0.976948,0.120079,29.0311,10.05901,145.346171,0.970466,10.980178,145.888851,0.97003,0.18202,1.3989,0.025971,True,1,2
+Random Forest,4.392195,71.731423,0.990742,0.099604,1090.6411,9.134973,140.568624,0.972375,11.606862,184.271538,0.952185,0.151001,107.2288,0.026717,True,2,1
+Gradient Boosting,15.278702,249.624301,0.887877,0.140607,31.027,15.248611,217.44936,0.933894,18.10817,266.306081,0.900136,0.178118,3.4817,0.056836,True,3,3
+Linear Regression,24.601423,327.31248,0.807227,0.2594,0.1244,28.206121,366.235837,0.812482,28.553019,400.044885,0.774647,0.266757,0.1721,-0.000439,True,4,4
+Median Baseline,60.260452,747.881179,-0.006436,0.605658,0.0798,,,,,,,,,,False,5,5

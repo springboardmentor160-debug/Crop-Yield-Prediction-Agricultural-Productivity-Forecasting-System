@@ -1,0 +1,26 @@
+[
+  {
+    "model": "Median Baseline",
+    "training_seconds": 0.0798,
+    "train_mae": 84.134781,
+    "test_mae": 60.260452,
+    "train_rmse": 912.241782,
+    "test_rmse": 747.881179,
+    "train_r2": -0.008489,
+    "test_r2": -0.006436,
+    "log_test_mae": 0.605658,
+    "log_test_rmse": 1.133206
+  },
+  {
+    "model": "Linear Regression",
+    "training_seconds": 0.1244,
+    "train_mae": 33.27293,
+    "test_mae": 24.601423,
+    "train_rmse": 408.485489,
+    "test_rmse": 327.31248,
+    "train_r2": 0.797789,
+    "test_r2": 0.807227,
+    "log_test_mae": 0.2594,
+    "log_test_rmse": 0.41973
+  }
+]

@@ -1,0 +1,23 @@
+{
+  "model": "Random Forest Regressor",
+  "best_parameters": {
+    "model__n_estimators": 500,
+    "model__min_samples_split": 2,
+    "model__min_samples_leaf": 1,
+    "model__max_features": 0.5,
+    "model__max_depth": null,
+    "model__bootstrap": true
+  },
+  "best_cv_log_mae": 0.116288,
+  "training_seconds": 1090.6411,
+  "train_mae": 4.647123,
+  "test_mae": 4.392195,
+  "train_rmse": 128.152641,
+  "test_rmse": 71.731423,
+  "train_r2": 0.980098,
+  "test_r2": 0.990742,
+  "log_train_mae": 0.038257,
+  "log_test_mae": 0.099604,
+  "log_train_rmse": 0.079228,
+  "log_test_rmse": 0.180627
+}

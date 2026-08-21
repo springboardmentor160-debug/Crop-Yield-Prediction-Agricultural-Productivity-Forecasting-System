@@ -1,0 +1,86 @@
+{
+  "project": "YieldSense AI",
+  "task": "Crop Yield Prediction",
+  "model_name": "Random Forest Regressor",
+  "model_type": "RandomForestRegressor",
+  "model_version": "1.0.0",
+  "artifact_filename": "yield_prediction_pipeline.joblib",
+  "trained_at_utc": "2026-07-13T18:06:06.044367+00:00",
+  "training_rows": 19689,
+  "training_year_start": 1997,
+  "training_year_end": 2020,
+  "feature_count": 15,
+  "features": [
+    "Crop_Year",
+    "Area",
+    "Annual_Rainfall",
+    "Fertilizer",
+    "Pesticide",
+    "N",
+    "P",
+    "K",
+    "pH",
+    "avg_temp_c",
+    "total_rainfall_mm",
+    "avg_humidity_percent",
+    "Crop",
+    "Season",
+    "State"
+  ],
+  "numeric_features": [
+    "Crop_Year",
+    "Area",
+    "Annual_Rainfall",
+    "Fertilizer",
+    "Pesticide",
+    "N",
+    "P",
+    "K",
+    "pH",
+    "avg_temp_c",
+    "total_rainfall_mm",
+    "avg_humidity_percent"
+  ],
+  "categorical_features": [
+    "Crop",
+    "Season",
+    "State"
+  ],
+  "target": "Yield",
+  "target_transformation": "log1p",
+  "prediction_inverse_transformation": "expm1",
+  "negative_predictions_clipped_to_zero": true,
+  "production_feature_used": false,
+  "hyperparameters": {
+    "n_estimators": 500,
+    "max_depth": null,
+    "min_samples_split": 2,
+    "min_samples_leaf": 1,
+    "max_features": 0.5,
+    "bootstrap": true,
+    "random_state": 42
+  },
+  "random_split_metrics": {
+    "mae": 4.392195,
+    "rmse": 71.731423,
+    "r2": 0.990742,
+    "log_mae": 0.099604
+  },
+  "time_based_metrics": {
+    "validation_period": "2017-2018",
+    "test_period": "2019-2020",
+    "future_test_mae": 11.606862,
+    "future_test_rmse": 184.271538,
+    "future_test_r2": 0.952185,
+    "future_log_test_mae": 0.151001
+  },
+  "selection_basis": [
+    "Highest random-split prediction accuracy",
+    "Lowest random-split MAE and RMSE",
+    "Strong cross-validation performance",
+    "Ensemble stability across multiple decision trees",
+    "Suitable for nonlinear tabular agricultural data"
+  ],
+  "temporal_validation_note": "Decision Tree performed better on the specific 2019-2020 chronological test. Random Forest was selected for production based on stronger overall random-split, cross-validation, and ensemble robustness. The temporal result remains documented.",
+  "final_training_seconds": 151.1356
+}
