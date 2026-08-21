@@ -1,0 +1,172 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ============================================================
+   YieldSense AI  -  Global Design System
+   ============================================================
+   Design tokens and base styles for a trustworthy,
+   practical agricultural data platform.
+   ============================================================ */
+
+@layer base {
+  :root {
+    /* ── Primary Brand ── */
+    --color-primary: #1a6b3c;
+    --color-primary-hover: #155730;
+    --color-primary-light: #e8f5ec;
+    --color-primary-muted: #d1fae5;
+
+    /* ── Typography ── */
+    --color-text: #111827;
+    --color-text-secondary: #374151;
+    --color-text-muted: #6b7280;
+    --color-text-subtle: #9ca3af;
+
+    /* ── Surfaces ── */
+    --color-bg: #f9fafb;
+    --color-surface: #ffffff;
+    --color-surface-raised: #ffffff;
+
+    /* ── Borders ── */
+    --color-border: #e5e7eb;
+    --color-border-subtle: #f3f4f6;
+
+    /* ── Semantic ── */
+    --color-success: #15803d;
+    --color-success-bg: #f0fdf4;
+    --color-warning: #b45309;
+    --color-warning-bg: #fffbeb;
+    --color-danger: #dc2626;
+    --color-danger-bg: #fef2f2;
+    --color-info: #1d4ed8;
+    --color-info-bg: #eff6ff;
+  }
+
+  * {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    box-sizing: border-box;
+  }
+
+  body {
+    @apply bg-gray-50 text-gray-900;
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-feature-settings: "cv11", "ss01";
+  }
+
+  .dark body {
+    @apply bg-gray-950 text-gray-100;
+  }
+
+  /* Heading defaults */
+  h1, h2, h3, h4, h5, h6 {
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    line-height: 1.3;
+  }
+
+  /* Focus ring  -  consistent across all interactive elements */
+  :focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-gray-300 rounded-full;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-gray-400;
+  }
+
+  .dark ::-webkit-scrollbar-thumb {
+    @apply bg-gray-700;
+  }
+}
+
+@layer utilities {
+  /* ── Page entry animation  -  subtle opacity only ── */
+  .animate-in {
+    animation: fadeIn 0.25s ease-out;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  /* ── Zoom in  -  for modals/dialogs ── */
+  .zoom-in-95 {
+    animation: zoomIn 0.15s ease-out;
+  }
+
+  @keyframes zoomIn {
+    from { opacity: 0; transform: scale(0.97); }
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  /* ── Reduced motion support ── */
+  @media (prefers-reduced-motion: reduce) {
+    .animate-in,
+    .zoom-in-95 {
+      animation: none;
+    }
+
+    * {
+      transition-duration: 0.01ms !important;
+      animation-duration: 0.01ms !important;
+    }
+  }
+
+  /* ── Utility: divider ── */
+  .divider {
+    @apply border-t border-gray-100 dark:border-gray-800;
+  }
+
+  /* ── Utility: page section ── */
+  .page-section {
+    @apply space-y-6;
+  }
+
+  /* ── Utility: data label/value pair ── */
+  .data-label {
+    @apply text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide;
+  }
+
+  .data-value {
+    @apply text-sm font-semibold text-gray-900 dark:text-white mt-0.5;
+  }
+
+  /* ── Form select  -  consistent with Input ── */
+  .form-select {
+    @apply w-full rounded-lg border border-gray-300 dark:border-gray-600
+           bg-white dark:bg-gray-900
+           px-3 py-2.5 text-sm text-gray-900 dark:text-gray-100
+           transition-colors duration-150
+           focus:outline-none focus:ring-1 focus:ring-green-800 focus:border-green-800
+           dark:focus:ring-green-600 dark:focus:border-green-600
+           disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  /* ── Status dot ── */
+  .status-dot {
+    @apply inline-block w-2 h-2 rounded-full;
+  }
+
+  .status-dot-green { @apply bg-green-500; }
+  .status-dot-amber { @apply bg-amber-500; }
+  .status-dot-red { @apply bg-red-500; }
+  .status-dot-gray { @apply bg-gray-400; }
+}

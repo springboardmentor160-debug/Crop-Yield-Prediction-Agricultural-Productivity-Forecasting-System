@@ -1,45 +1,46 @@
 """
-Pydantic request/response schemas for authentication endpoints.
-File: backend/app/schemas/auth.py
-"""
+YieldSense AI  -  Auth Schemas
 
-from typing import Literal
-from uuid import UUID
+Pydantic models for authentication request/response validation.
+"""
 
 from pydantic import BaseModel, EmailStr, Field
 
-# 5 roles matching database/schema.sql `roles` table.
-# farmer / cooperative / agribusiness / government are selectable at onboarding.
-# admin is reserved for internal platform operations (not exposed in onboarding UI).
-Role = Literal["farmer", "cooperative", "agribusiness", "government", "admin"]
-
 
 class RegisterRequest(BaseModel):
-    full_name: str = Field(..., min_length=2, max_length=120, examples=["Ramesh Kumar"])
-    email: EmailStr
-    password: str = Field(..., min_length=8, description="Minimum 8 characters")
-    role: Role = "farmer"
+    """Schema for user registration."""
 
-
-class RegisterResponse(BaseModel):
-    user_id: UUID
-    full_name: str
     email: EmailStr
-    role: Role
+    password: str = Field(..., min_length=6, max_length=128, description="User password (min 6 chars)")
+    display_name: str = Field(..., min_length=1, max_length=100, description="User display name")
+    role: str = Field(default="farmer", pattern=r"^(farmer|admin)$", description="User role")
 
 
 class LoginRequest(BaseModel):
+    """Schema for user login."""
+
     email: EmailStr
-    password: str
+    password: str = Field(..., min_length=1, description="User password")
 
 
-class TokenResponse(BaseModel):
-    access_token: str
-    token_type: str = "bearer"
-    role: Role
-    expires_in_minutes: int
+class ForgotPasswordRequest(BaseModel):
+    """Schema for forgot password request."""
+
+    email: EmailStr
 
 
-class CurrentUserResponse(BaseModel):
-    user_id: UUID
-    role: Role
+class AuthResponse(BaseModel):
+    """Schema for authentication response."""
+
+    uid: str
+    email: str
+    display_name: str
+    role: str
+    token: str
+
+
+class MessageResponse(BaseModel):
+    """Generic message response."""
+
+    message: str
+    success: bool = True

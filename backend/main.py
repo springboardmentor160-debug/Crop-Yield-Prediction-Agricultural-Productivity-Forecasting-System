@@ -1,51 +1,66 @@
 """
-YieldSense AI — Backend Entry Point
-File: backend/main.py
+YieldSense AI — FastAPI Application Entry Point
+
+Initializes the FastAPI application, middleware, and routers.
 """
 
-from pathlib import Path
-from dotenv import load_dotenv
-
-load_dotenv(dotenv_path=Path(__file__).resolve().parent / ".env")
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.routes import auth, onboarding, predictions, recommendations, dashboard, reports
-
-app = FastAPI(
-    title="YieldSense AI API",
-    description="Crop Yield Prediction & Agricultural Productivity Forecasting System",
-    version="0.1.0",
-)
-
-origins = [
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-    "http://localhost:3001",
-    "http://127.0.0.1:3001",
-]
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=origins,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-app.include_router(auth.router, prefix="/api/v1/auth", tags=["Authentication"])
-app.include_router(onboarding.router, prefix="/api/v1/onboarding", tags=["Onboarding"])
-app.include_router(reports.router, tags=["Reports"])
-app.include_router(predictions.router, tags=["Predictions"])
-app.include_router(recommendations.router, tags=["Analytics & Recommendations"])
-app.include_router(dashboard.router, tags=["Dashboard"])
+from app.api.v1.router import api_v1_router
+from app.core.config import get_settings
+from app.firebase.client import initialize_firebase
 
 
-@app.get("/health", tags=["System"])
-def health_check():
-    return {"status": "ok", "service": "yieldsense-api", "version": "0.1.0"}
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """
+    Application lifespan handler.
+    Initializes Firebase on startup.
+    """
+    # Startup
+    try:
+        initialize_firebase()
+        print("[Firebase] Firebase initialized successfully")
+    except Exception as e:
+        print(f"[Firebase] Firebase initialization warning: {e}")
+        print("   The app will start, but Firebase-dependent features may not work.")
+
+    yield
+
+    # Shutdown
+    print("[Application] Application shutting down")
 
 
-@app.get("/", tags=["System"])
-def root():
-    return {"message": "Welcome to YieldSense AI API. See /docs for interactive API documentation."}
+def create_application() -> FastAPI:
+    """Create and configure the FastAPI application."""
+    settings = get_settings()
+
+    app = FastAPI(
+        title=settings.APP_NAME,
+        version=settings.APP_VERSION,
+        description=settings.APP_DESCRIPTION,
+        docs_url="/docs",
+        redoc_url="/redoc",
+        lifespan=lifespan,
+    )
+
+    # CORS middleware
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=settings.cors_origins_list,
+        allow_origin_regex=r"https://.*\.vercel\.app",
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
+    # Include API routers
+    app.include_router(api_v1_router, prefix=settings.API_V1_PREFIX)
+
+    return app
+
+
+app = create_application()

@@ -1,0 +1,326 @@
+{
+  "info": {
+    "_postman_id": "yieldsense-ai-collection-v1",
+    "name": "YieldSense AI API Collection",
+    "description": "Postman API collection for YieldSense AI  -  Crop Yield Prediction and Agricultural Forecasting System.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8000/api/v1",
+      "type": "string"
+    },
+    {
+      "key": "authToken",
+      "value": "YOUR_FIREBASE_ID_TOKEN",
+      "type": "string"
+    },
+    {
+      "key": "farmId",
+      "value": "sample_farm_id",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["health"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "User Profile",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{authToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/users/profile",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "profile"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Farms",
+      "item": [
+        {
+          "name": "List Farms",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{authToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/farms/?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["farms"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Farm",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{authToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Green Acres Farm\",\n  \"location\": \"Punjab, India\",\n  \"latitude\": 30.9010,\n  \"longitude\": 75.8573,\n  \"area\": 15.5,\n  \"crop\": \"Wheat\",\n  \"soil_ph\": 6.8,\n  \"nitrogen\": 90,\n  \"phosphorus\": 45,\n  \"potassium\": 40\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/farms/",
+              "host": ["{{baseUrl}}"],
+              "path": ["farms"]
+            }
+          }
+        },
+        {
+          "name": "Get Farm",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{authToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/farms/{{farmId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["farms", "{{farmId}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Prediction",
+      "item": [
+        {
+          "name": "Model Info",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/prediction/model-info",
+              "host": ["{{baseUrl}}"],
+              "path": ["prediction", "model-info"]
+            }
+          }
+        },
+        {
+          "name": "Predict Yield",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"crop\": \"Rice\",\n  \"season\": \"Kharif\",\n  \"state\": \"Uttar Pradesh\",\n  \"area\": 10.0,\n  \"temperature\": 28.5,\n  \"annual_rainfall\": 1200.0,\n  \"humidity\": 70.0,\n  \"soil_ph\": 6.5,\n  \"nitrogen\": 80.0,\n  \"phosphorus\": 40.0,\n  \"potassium\": 38.0,\n  \"fertilizer_usage\": 180.0,\n  \"pesticide_usage\": 12.5\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/prediction/predict-yield",
+              "host": ["{{baseUrl}}"],
+              "path": ["prediction", "predict-yield"]
+            }
+          }
+        },
+        {
+          "name": "Recommend Crop",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nitrogen\": 90.0,\n  \"phosphorus\": 45.0,\n  \"potassium\": 35.0,\n  \"temperature\": 24.5,\n  \"humidity\": 82.0,\n  \"soil_ph\": 6.8,\n  \"annual_rainfall\": 1000.0\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/prediction/recommend-crop",
+              "host": ["{{baseUrl}}"],
+              "path": ["prediction", "recommend-crop"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Weather",
+      "item": [
+        {
+          "name": "Current Weather",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/weather/?lat=28.6139&lon=77.2090",
+              "host": ["{{baseUrl}}"],
+              "path": ["weather"],
+              "query": [
+                { "key": "lat", "value": "28.6139" },
+                { "key": "lon", "value": "77.2090" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Weather Forecast",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/weather/forecast?lat=28.6139&lon=77.2090&days=7",
+              "host": ["{{baseUrl}}"],
+              "path": ["weather", "forecast"],
+              "query": [
+                { "key": "lat", "value": "28.6139" },
+                { "key": "lon", "value": "77.2090" },
+                { "key": "days", "value": "7" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Soil",
+      "item": [
+        {
+          "name": "Analyze Soil",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"soil_ph\": 6.8,\n  \"nitrogen\": 90.0,\n  \"phosphorus\": 45.0,\n  \"potassium\": 35.0,\n  \"crop\": \"Wheat\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/soil/analyze",
+              "host": ["{{baseUrl}}"],
+              "path": ["soil", "analyze"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Analytics",
+      "item": [
+        {
+          "name": "Dashboard Summary",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{authToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/analytics/dashboard",
+              "host": ["{{baseUrl}}"],
+              "path": ["analytics", "dashboard"]
+            }
+          }
+        },
+        {
+          "name": "Analytics Chart Data",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{authToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/analytics/",
+              "host": ["{{baseUrl}}"],
+              "path": ["analytics"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Recommendations",
+      "item": [
+        {
+          "name": "Post Recommendations (Manual)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"crop\": \"Rice\",\n  \"temperature\": 28.0,\n  \"annual_rainfall\": 1200.0,\n  \"humidity\": 70.0,\n  \"soil_ph\": 6.5,\n  \"nitrogen\": 80.0,\n  \"phosphorus\": 40.0,\n  \"potassium\": 35.0,\n  \"predicted_yield\": 3.5,\n  \"season\": \"Kharif\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/recommendations/",
+              "host": ["{{baseUrl}}"],
+              "path": ["recommendations"]
+            }
+          }
+        },
+        {
+          "name": "Get Farm Advisory",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{authToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/recommendations/farm/{{farmId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["recommendations", "farm", "{{farmId}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Risk",
+      "item": [
+        {
+          "name": "Assess Risk",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"crop\": \"Rice\",\n  \"temperature\": 38.0,\n  \"annual_rainfall\": 400.0,\n  \"humidity\": 40.0,\n  \"soil_ph\": 4.5,\n  \"nitrogen\": 20.0,\n  \"phosphorus\": 10.0,\n  \"potassium\": 10.0,\n  \"predicted_yield\": 1.2,\n  \"season\": \"Kharif\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/risk/assess",
+              "host": ["{{baseUrl}}"],
+              "path": ["risk", "assess"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

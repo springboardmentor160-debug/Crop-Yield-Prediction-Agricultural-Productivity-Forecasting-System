@@ -1,63 +1,121 @@
 """
-Pydantic schemas for the Analytics & Recommendations service.
- 
-Keeping schemas in their own module (rather than inline in the router)
-so the frontend team has a single file to read when they need to know
-the exact request/response contract.
+YieldSense AI  -  Analytics Schemas
+
+Pydantic response models for dashboard summary and analytics data.
 """
- 
-from enum import Enum
-from typing import List, Optional
- 
-from pydantic import BaseModel, Field
- 
- 
-class CropType(str, Enum):
-    WHEAT = "Wheat"
-    RICE = "Rice"
-    MAIZE = "Maize"
- 
- 
-class RiskLevel(str, Enum):
-    LOW = "Low"
-    MEDIUM = "Medium"
-    HIGH = "High"
- 
- 
-class FarmAnalyticsRequest(BaseModel):
-    crop_type: CropType
-    avg_temp: float = Field(..., ge=-10, le=60, description="Average temperature in Celsius")
-    rainfall: float = Field(..., ge=0, le=5000, description="Rainfall in mm for the period")
-    soil_ph: float = Field(..., ge=0, le=14, description="Soil pH")
-    nitrogen: float = Field(..., ge=0, le=500, description="Nitrogen level (kg/ha)")
-    phosphorus: float = Field(..., ge=0, le=500, description="Phosphorus level (kg/ha)")
-    potassium: float = Field(..., ge=0, le=500, description="Potassium level (kg/ha)")
- 
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "crop_type": "Wheat",
-                "avg_temp": 32.5,
-                "rainfall": 180.0,
-                "soil_ph": 5.4,
-                "nitrogen": 35.0,
-                "phosphorus": 40.0,
-                "potassium": 60.0,
-            }
-        }
- 
- 
-class RiskItem(BaseModel):
-    type: str
-    severity: RiskLevel
-    advice: str
- 
- 
-class FarmAnalyticsResponse(BaseModel):
-    crop: CropType
-    overall_risk_level: RiskLevel
-    risk_score: int = Field(..., description="0-100 numeric score, higher = more risk")
-    identified_risks: List[RiskItem]
-    actionable_recommendations: List[str]
-    best_practice_tips: List[str]
- 
+
+from typing import Any, Dict, List, Optional
+
+from pydantic import BaseModel
+
+
+class RecentPredictionItem(BaseModel):
+    """A single item in the recent predictions list."""
+    id: str
+    crop: str
+    season: str
+    area: float
+    predicted_yield: float
+    total_production: float
+    confidence: str
+    risk_level: Optional[str] = None
+    risk_score: Optional[float] = None
+    farm_name: Optional[str] = None
+    created_at: str
+
+
+class RecentFarmItem(BaseModel):
+    """A single item in the recent farms list."""
+    id: str
+    name: str
+    location: str
+    crop: str
+    area: float
+    created_at: str
+
+
+class DashboardSummaryResponse(BaseModel):
+    """Response for the live dashboard summary endpoint."""
+    # Farm stats
+    total_farms: int = 0
+    total_area: float = 0.0
+    unique_crops: int = 0
+    crop_list: List[str] = []
+
+    # Prediction stats
+    total_predictions: int = 0
+    avg_predicted_yield: Optional[float] = None
+    latest_prediction: Optional[RecentPredictionItem] = None
+
+    # Risk overview
+    latest_risk_level: Optional[str] = None
+    latest_risk_score: Optional[float] = None
+    high_risk_count: int = 0
+
+    # Recent activity
+    recent_predictions: List[RecentPredictionItem] = []
+    recent_farms: List[RecentFarmItem] = []
+
+    # Model info
+    model_name: Optional[str] = None
+    model_accuracy: Optional[float] = None
+    model_status: str = "not_trained"
+
+
+class YieldTrendPoint(BaseModel):
+    """A single data point for yield trend charts."""
+    date: str
+    predicted_yield: float
+    crop: str
+    season: str
+    area: float
+
+
+class CropYieldPoint(BaseModel):
+    """Average yield per crop for comparison charts."""
+    crop: str
+    avg_yield: float
+    count: int
+    total_production: float
+
+
+class SeasonYieldPoint(BaseModel):
+    """Average yield per season for comparison charts."""
+    season: str
+    avg_yield: float
+    count: int
+
+
+class RainfallYieldPoint(BaseModel):
+    """Rainfall vs Yield scatter point."""
+    rainfall: float
+    yield_value: float
+    crop: str
+    temperature: float
+
+
+class FarmYieldPoint(BaseModel):
+    """Average yield per farm for farm comparison charts."""
+    farm_name: str
+    avg_yield: float
+    count: int
+    total_production: float
+
+class AnalyticsResponse(BaseModel):
+    """Full analytics data response for the analytics dashboard page."""
+    # Chart data
+    yield_trend: List[YieldTrendPoint] = []
+    crop_comparison: List[CropYieldPoint] = []
+    season_comparison: List[SeasonYieldPoint] = []
+    rainfall_vs_yield: List[RainfallYieldPoint] = []
+    farm_comparison: List[FarmYieldPoint] = []
+
+    # Summary metrics
+    total_predictions: int = 0
+    avg_yield: Optional[float] = None
+    best_crop: Optional[str] = None
+    best_season: Optional[str] = None
+    productivity_score: Optional[float] = None
+
+    # Metadata
+    data_range_days: int = 30

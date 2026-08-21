@@ -1,101 +1,129 @@
 """
-Quick verification tests for the recommendation engine.
-Run with: pytest test_api.py -v
+YieldSense AI — API Test Suite
+
+Tests the Prediction, Weather, and Soil endpoints of the FastAPI backend.
 """
- 
-from fastapi.testclient import TestClient
- 
-from app.main import app
- 
-client = TestClient(app)
- 
-BASE = {
-    "crop_type": "Wheat",
-    "avg_temp": 25.0,
-    "rainfall": 700.0,
-    "soil_ph": 6.5,
-    "nitrogen": 80.0,
-    "phosphorus": 50.0,
-    "potassium": 60.0,
-}
- 
- 
-def _post(overrides: dict):
-    payload = {**BASE, **overrides}
-    resp = client.post("/api/v1/analytics/recommendations", json=payload)
-    assert resp.status_code == 200, resp.text
-    return resp.json()
- 
- 
-def test_health_check():
-    resp = client.get("/health")
-    assert resp.status_code == 200
-    assert resp.json()["status"] == "ok"
- 
- 
-def test_baseline_is_low_risk():
-    data = _post({})
-    assert data["overall_risk_level"] == "Low"
-    assert data["risk_score"] == 0
-    assert data["identified_risks"] == []
- 
- 
-def test_low_ph_triggers_lime_recommendation():
-    data = _post({"soil_ph": 5.4})
-    assert any("lime" in r.lower() for r in data["actionable_recommendations"])
- 
- 
-def test_high_ph_triggers_sulfur_recommendation():
-    data = _post({"soil_ph": 8.0})
-    assert any("sulfur" in r.lower() for r in data["actionable_recommendations"])
- 
- 
-def test_drought_risk_150mm():
-    data = _post({"rainfall": 150.0})
-    assert data["overall_risk_level"] == "High"
-    assert any(r["type"] == "Drought Stress" for r in data["identified_risks"])
- 
- 
-def test_flood_risk_1400mm():
-    data = _post({"rainfall": 1400.0})
-    assert any(r["type"] == "Flood / Root Rot" for r in data["identified_risks"])
-    assert data["overall_risk_level"] == "Medium"
- 
- 
-def test_heat_stress_38c():
-    data = _post({"avg_temp": 38.0})
-    heat_risks = [r for r in data["identified_risks"] if r["type"] == "Heat Stress"]
-    assert len(heat_risks) == 1
-    assert heat_risks[0]["severity"] == "Medium"
- 
- 
-def test_severe_heat_stress_42c_is_high_severity():
-    data = _post({"avg_temp": 42.0})
-    heat_risks = [r for r in data["identified_risks"] if r["type"] == "Heat Stress"]
-    assert heat_risks[0]["severity"] == "High"
- 
- 
-def test_compound_risk_drought_and_heat_stacks_score():
-    data = _post({"rainfall": 100.0, "avg_temp": 41.0})
-    assert data["overall_risk_level"] == "High"
-    assert len(data["identified_risks"]) == 2
-    assert data["risk_score"] == 95  # 50 (drought) + 30 (heat) + 15 (severe heat bonus)
- 
- 
-def test_low_npk_triggers_all_three_recommendations():
-    data = _post({"nitrogen": 20.0, "phosphorus": 10.0, "potassium": 15.0})
-    recs = " ".join(data["actionable_recommendations"]).lower()
-    assert "urea" in recs or "npk" in recs
-    assert "dap" in recs
-    assert "potash" in recs or "mop" in recs
- 
- 
-def test_invalid_ph_rejected():
-    resp = client.post("/api/v1/analytics/recommendations", json={**BASE, "soil_ph": 20.0})
-    assert resp.status_code == 422
- 
- 
-def test_invalid_crop_type_rejected():
-    resp = client.post("/api/v1/analytics/recommendations", json={**BASE, "crop_type": "Banana"})
-    assert resp.status_code == 422
- 
+
+import asyncio
+import httpx
+
+
+async def test_health():
+    async with httpx.AsyncClient(base_url="http://127.0.0.1:8000/api/v1") as client:
+        # Test health check
+        r = await client.get("/health")
+        print("Health Check Response:", r.status_code, r.json())
+        assert r.status_code == 200
+        assert r.json()["status"] == "healthy"
+
+        # Test model-info
+        r = await client.get("/prediction/model-info")
+        print("\nModel Info Response:", r.status_code, r.json())
+        assert r.status_code == 200
+        assert r.json()["status"] == "ready"
+
+        # Test predict-yield
+        payload = {
+            "crop": "Rice",
+            "season": "Kharif",
+            "state": "Uttar Pradesh",
+            "area": 10.0,
+            "temperature": 28.5,
+            "annual_rainfall": 1200.0,
+            "humidity": 70.0,
+            "soil_ph": 6.5,
+            "nitrogen": 80.0,
+            "phosphorus": 40.0,
+            "potassium": 38.0,
+            "fertilizer_usage": 180.0,
+            "pesticide_usage": 12.5
+        }
+        r = await client.post("/prediction/predict-yield", json=payload)
+        print("\nPredict Yield Response:", r.status_code, r.json())
+        assert r.status_code == 200
+        data = r.json()
+        assert "predicted_yield" in data
+        assert "weather_summary" in data or data["weather_summary"] is None
+        assert data["soil_summary"]["health_label"] in ["Poor", "Fair", "Good", "Excellent"]
+
+        # Test predict-yield with location coordinates
+        payload_loc = {**payload, "latitude": 28.6139, "longitude": 77.2090}
+        r = await client.post("/prediction/predict-yield", json=payload_loc)
+        print("\nPredict Yield (with Lat/Lon) Response:", r.status_code, r.json())
+        assert r.status_code == 200
+        data = r.json()
+        assert data["weather_summary"] is not None
+        assert "temperature" in data["weather_summary"]
+
+        # Test predict-yield with extreme unviable conditions (drastic inputs)
+        payload_unviable = {
+            "crop": "Rice",
+            "season": "Kharif",
+            "state": "Uttar Pradesh",
+            "area": 10.0,
+            "temperature": 0.0,
+            "annual_rainfall": 0.0,
+            "humidity": 1.0,
+            "soil_ph": 0.0,
+            "nitrogen": 0.0,
+            "phosphorus": 0.0,
+            "potassium": 0.0,
+            "fertilizer_usage": 0.0,
+            "pesticide_usage": 0.0
+        }
+        r = await client.post("/prediction/predict-yield", json=payload_unviable)
+        print("\nPredict Yield (Unviable / Drastic Inputs) Response:", r.status_code, r.json())
+        assert r.status_code == 200
+        data = r.json()
+        assert data["predicted_yield"] == 0.0
+        assert "Rule Override" in data["model_used"]
+
+        # Test weather current
+        r = await client.get("/weather/", params={"lat": 28.6139, "lon": 77.2090})
+        print("\nWeather Current Response:", r.status_code, r.json())
+        assert r.status_code == 200
+        assert "temperature" in r.json()
+
+        # Test weather forecast
+        r = await client.get("/weather/forecast", params={"lat": 28.6139, "lon": 77.2090, "days": 5})
+        print("\nWeather Forecast Response:", r.status_code, r.json())
+        assert r.status_code == 200
+        assert len(r.json()["forecast"]) > 0
+
+        # Test soil analyze
+        soil_payload = {
+            "soil_ph": 6.8,
+            "nitrogen": 90.0,
+            "phosphorus": 45.0,
+            "potassium": 35.0,
+            "crop": "Wheat"
+        }
+        r = await client.post("/soil/analyze", json=soil_payload)
+        print("\nSoil Analyze Response:", r.status_code, r.json())
+        assert r.status_code == 200
+        assert r.json()["health_score"] > 0
+
+        # Test recommend-crop
+        recommend_payload = {
+            "nitrogen": 90.0,
+            "phosphorus": 45.0,
+            "potassium": 35.0,
+            "temperature": 24.5,
+            "humidity": 82.0,
+            "soil_ph": 6.8,
+            "annual_rainfall": 1000.0
+        }
+        r = await client.post("/prediction/recommend-crop", json=recommend_payload)
+        print("\nRecommend Crop Response:", r.status_code, r.json())
+        assert r.status_code == 200
+        assert "recommended_crop" in r.json()
+        assert len(r.json()["top_recommendations"]) > 0
+
+
+
+if __name__ == "__main__":
+    try:
+        asyncio.run(test_health())
+        print("\nAll API tests passed successfully!")
+    except Exception as e:
+        print("\nAPI testing failed:", e)
