@@ -8,7 +8,6 @@ df = pd.read_csv(
 
 print("Dataset Loaded Successfully")
 
-
 print(df.head())
 
 print("Dataset Shape:")
