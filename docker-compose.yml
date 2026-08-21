@@ -1,23 +1,11 @@
 version: "3.9"
-
 services:
-  db:
-    image: postgres:15
-    environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=admin123
-      - POSTGRES_DB=yieldsense
-    ports:
-      - "5432:5432"
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-
   backend:
     build: ./backend
     ports:
       - "8000:8000"
     environment:
-      - DATABASE_URL=postgresql://postgres:postgres@db:5432/yieldsense
+      - DATABASE_URL=postgresql://postgres:password@db:5432/yieldsense
     depends_on:
       - db
 
@@ -30,5 +18,10 @@ services:
     depends_on:
       - backend
 
-volumes:
-  pgdata:
+  db:
+    image: postgres:15
+    environment:
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=yieldsense
+    ports:
+      - "5432:5432"

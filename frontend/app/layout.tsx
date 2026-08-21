@@ -1,20 +1,19 @@
-import type { ReactNode } from "react";
+import type { Metadata } from "next";
 import "./globals.css";
 
-export const metadata = {
+export const metadata: Metadata = {
   title: "YieldSense AI",
-  description:
-    "Crop Yield Prediction & Agricultural Productivity Forecasting System",
+  description: "AI-powered Crop Yield Prediction & Agricultural Productivity Forecasting",
 };
 
 export default function RootLayout({
   children,
 }: {
-  children: ReactNode;
+  children: React.ReactNode;
 }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body className="bg-gray-50 min-h-screen">{children}</body>
     </html>
   );
 }
