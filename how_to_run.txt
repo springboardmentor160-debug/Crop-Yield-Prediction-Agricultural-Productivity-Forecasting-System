@@ -1,0 +1,72 @@
+# How to Run YieldSense AI
+
+This guide provides step-by-step instructions to get the YieldSense AI platform running on your local machine. 
+The project consists of a FastAPI backend and a Next.js frontend.
+
+---
+
+## 1. Prerequisites
+- Python 3.10+
+- Node.js 18+
+- PostgreSQL (Ensure it is installed and running on your system)
+
+---
+
+## 2. Backend Setup
+
+1. Open a terminal and navigate to the root directory of the project:
+   cd /path/to/crop-yield
+
+2. Create and activate a Python virtual environment:
+   python3 -m venv backend/venv
+   source backend/venv/bin/activate
+
+3. Install the required Python dependencies:
+   pip install -r backend/requirements.txt
+
+4. Configure the Database Connection:
+   Make sure your PostgreSQL database is running. Check `backend/.env` to ensure your `DATABASE_URL` matches your local PostgreSQL setup.
+   Example: DATABASE_URL="postgresql://username:password@localhost:5432/your_database"
+
+5. Initialize the Database Schema:
+   Run the following command from the root directory to create the required tables:
+   cd backend && ../backend/venv/bin/python -c "from database import init_db; init_db()"
+
+6. Train the Machine Learning Models:
+   The backend relies on pre-trained models. Generate them by running the training scripts:
+   ../backend/venv/bin/python ml/training/train_recommendation.py
+   ../backend/venv/bin/python ml/training/train_yield.py
+
+7. Start the FastAPI Server:
+   From the `backend` directory, run:
+   ../backend/venv/bin/uvicorn main:app --reload --host 127.0.0.1 --port 8000
+   
+   The API will now be available at http://127.0.0.1:8000
+   You can view the interactive Swagger documentation at http://127.0.0.1:8000/docs
+
+---
+
+## 3. Frontend Setup
+
+1. Open a new terminal window (leave the backend running) and navigate to the project root:
+   cd /path/to/crop-yield
+
+2. Change into the frontend directory:
+   cd frontend
+
+3. Install Node modules:
+   npm install
+
+4. Start the Next.js development server:
+   npm run dev
+
+   The frontend dashboard will now be accessible at http://localhost:3000
+
+---
+
+## 4. Usage Flow
+1. Visit http://localhost:3000 in your browser.
+2. Register a new user account.
+3. Log in.
+4. Click "Add New Farm" and enter realistic coordinates and soil data.
+5. On the dashboard, click "Run Analysis" to trigger the ML models and live weather fetch pipeline.

@@ -1,359 +1,276 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
-import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
-import {
-  Sprout,
-  CloudSun,
-  Layers,
-  LineChart as LineChartIcon,
-  FileText,
-  Bell,
-  ArrowRight,
-  Download,
-} from "lucide-react";
-import Navbar from "../../components/Navbar";
-import { getDashboardSummary, DashboardSummary } from "../../services/dashboardApi";
-import { downloadPredictionsCsv } from "../../services/reportsApi";
+import Navbar from "@/components/Navbar";
+import { api, type FarmResponse } from "@/lib/api";
 
-// Quick-action tiles shown at the top of the dashboard.
-// Only "Predict Yield" has a dedicated route today — the rest route to
-// /predict as well until their own pages exist (see README/roadmap).
-const QUICK_ACTIONS = [
-  { label: "Predict Yield", icon: Sprout, href: "/predict" },
-  { label: "Weather", icon: CloudSun, href: "/predict" },
-  { label: "Soil Health", icon: Layers, href: "/predict" },
-  { label: "Market Prices", icon: LineChartIcon, href: "/predict" },
-  { label: "Reports", icon: FileText, href: "/predict" },
-  { label: "Alerts", icon: Bell, href: "/predict" },
-];
+function DashboardMetric({ title, value, subtitle }: { title: string; value: string | React.ReactNode; subtitle?: string }) {
+  return (
+    <div className="glass-panel p-6 rounded-2xl flex flex-col justify-between group hover:border-primary/30 transition-all duration-300 relative overflow-hidden">
+      <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-2xl group-hover:bg-primary/10 transition-all"></div>
+      <h3 className="text-textSecondary text-sm font-medium mb-4 uppercase tracking-wider">{title}</h3>
+      <div className="font-display text-4xl font-bold text-white mb-2">{value}</div>
+      {subtitle && <p className="text-xs text-textMuted">{subtitle}</p>}
+    </div>
+  );
+}
 
 export default function DashboardPage() {
-  const [data, setData] = useState<DashboardSummary | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [farms, setFarms] = useState<FarmResponse[] | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [downloading, setDownloading] = useState(false);
+  const [analyzingId, setAnalyzingId] = useState<number | null>(null);
+  const [analysisResult, setAnalysisResult] = useState<any>(null);
+  const [history, setHistory] = useState<any>(null);
+  const [cropInput, setCropInput] = useState<string>("rice");
 
   useEffect(() => {
-    getDashboardSummary()
-      .then(setData)
-      .catch((err) => setError(err.message || "Failed to load dashboard"))
-      .finally(() => setLoading(false));
+    loadFarms();
   }, []);
 
-  async function handleDownload() {
-    setDownloading(true);
+  async function loadFarms() {
     try {
-      await downloadPredictionsCsv();
+      const data = await api.listFarms();
+      setFarms(data);
+      if (data && data.length > 0) {
+        loadLatestAnalysis(data[0].id);
+        loadHistory(data[0].id);
+      }
     } catch (err) {
-      console.error("Download failed:", err);
+      setError(err instanceof Error ? err.message : "Could not load farms");
+    }
+  }
+
+  async function loadHistory(farmId: number) {
+    try {
+      const result = await api.getHistory(farmId);
+      setHistory(result);
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
+  async function loadLatestAnalysis(farmId: number) {
+    try {
+      const result = await api.getLatestAnalysis(farmId);
+      if (result.prediction || result.recommendation || result.weather) {
+          setAnalysisResult(result);
+      }
+    } catch (err) {
+      // no analysis found yet
+    }
+  }
+
+  async function handleAnalyze(farmId: number) {
+    setAnalyzingId(farmId);
+    setError(null);
+    try {
+      const res = await api.runAnalysis(farmId, cropInput);
+      setAnalysisResult({
+        prediction: { predicted_yield: res.predicted_yield, yield_unit: res.yield_unit },
+        recommendation: { recommended_crop: res.recommendation, confidence: res.recommendation_confidence },
+        weather: res.weather,
+        risk_level: res.risk_level
+      });
+      loadHistory(farmId);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Analysis failed");
     } finally {
-      setDownloading(false);
+      setAnalyzingId(null);
     }
   }
 
   return (
-    <>
-      <Navbar />
-      <div className="page">
-        <h1>Farm Dashboard</h1>
-        <p className="subtitle">Your yield predictions and performance at a glance.</p>
-
-        {/* Quick-action grid */}
-        <div className="quickGrid">
-          {QUICK_ACTIONS.map(({ label, icon: Icon, href }) => (
-            <a key={label} href={href} className="quickTile">
-              <span className="quickIcon">
-                <Icon size={22} strokeWidth={2} />
-              </span>
-              <span className="quickLabel">{label}</span>
-            </a>
-          ))}
+    <main className="min-h-screen relative overflow-hidden flex flex-col pb-20">
+      <div className="absolute top-0 left-1/4 w-[800px] h-[400px] bg-primary/10 rounded-full blur-[120px] mix-blend-screen pointer-events-none -translate-y-1/2"></div>
+      <Navbar role="Farmer" />
+      
+      <div className="flex-1 max-w-6xl w-full mx-auto px-6 mt-12 animate-fade-in relative z-10">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-12 gap-6">
+          <div>
+            <div className="inline-block mb-3 px-3 py-1 rounded-full border border-primary/20 bg-primary/5 text-primary font-mono text-xs uppercase tracking-widest">
+              Command Center
+            </div>
+            <h1 className="font-display text-4xl font-bold tracking-tight text-white">Your Dashboard</h1>
+          </div>
+          <Link href="/onboarding" className="btn-primary inline-flex items-center gap-2 whitespace-nowrap shadow-[0_0_20px_rgba(16,185,129,0.2)]">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            Add New Farm
+          </Link>
         </div>
 
-        {/* Featured promo card */}
-        <a href="/predict" className="promoCard">
-          <div className="promoArt" aria-hidden="true">
-            <Sprout size={48} strokeWidth={1.5} />
-          </div>
-          <div className="promoBody">
-            <p className="promoTitle">Get started with a new prediction</p>
-            <p className="promoText">
-              Enter your field, crop, and season details to generate a fresh yield forecast in seconds.
-            </p>
-            <span className="promoBtn">
-              Start Prediction <ArrowRight size={16} />
-            </span>
-          </div>
-        </a>
-
-        {loading && (
-          <div className="card skeleton">
-            <div className="skel-line skel-label" />
-            <div className="skel-line skel-chart" />
-          </div>
-        )}
-
-        {!loading && error && (
-          <div className="card">
-            <p className="error">{error}</p>
-          </div>
-        )}
-
-        {!loading && !error && data && data.yield_trend.length === 0 && (
-          <div className="card">
-            <p className="empty">
-              Not enough data yet. Make a prediction on the{" "}
-              <a href="/predict" className="link">Predict Yield</a> page to see it show up here.
+        {error && (
+          <div role="alert" className="mb-8 bg-danger/10 border border-danger/30 rounded-lg p-4">
+            <p className="text-sm text-danger font-medium flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-danger inline-block"></span>
+              {error}
             </p>
           </div>
         )}
 
-        {!loading && !error && data && data.yield_trend.length > 0 && (
-          <>
-            <div className="card score-card">
-              <p className="label">Productivity Score</p>
-              <p className="score">{data.productivity_score}%</p>
-              <p className="sub">
-                Latest prediction compared to your average across all past predictions.
-              </p>
-            </div>
-
-            <div className="card">
-              <p className="label">Yield Trend</p>
-              <ResponsiveContainer width="100%" height={320}>
-                <LineChart data={data.yield_trend}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                  <XAxis dataKey="season" stroke="#6b7280" fontSize={13} />
-                  <YAxis stroke="#6b7280" fontSize={13} />
-                  <Tooltip
-                    contentStyle={{ borderRadius: 10, border: "1px solid #d1d5db", fontSize: 13 }}
-                    formatter={(value: number) => [`${value.toLocaleString()} kg/ha`, "Yield"]}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="yield"
-                    stroke="#15803d"
-                    strokeWidth={2.5}
-                    dot={{ r: 4, fill: "#15803d" }}
-                    activeDot={{ r: 6 }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-
-            {data.crop_comparison.length > 1 && (
-              <div className="card">
-                <p className="label">Crop Comparison</p>
-                <ResponsiveContainer width="100%" height={280}>
-                  <BarChart data={data.crop_comparison}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                    <XAxis dataKey="name" stroke="#6b7280" fontSize={13} />
-                    <YAxis stroke="#6b7280" fontSize={13} />
-                    <Tooltip
-                      contentStyle={{ borderRadius: 10, border: "1px solid #d1d5db", fontSize: 13 }}
-                      formatter={(value: number) => [`${value.toLocaleString()} kg/ha`, "Avg Yield"]}
-                    />
-                    <Bar dataKey="yield" fill="#15803d" radius={[6, 6, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            )}
-
-            {data.crop_comparison.length === 1 && (
-              <div className="card">
-                <p className="label">Crop Comparison</p>
-                <p className="empty">
-                  Predict yield for a second crop type to unlock the comparison chart.
-                </p>
-              </div>
-            )}
-          </>
-        )}
-
-        {/* Bottom CTA pills */}
-        <div className="ctaRow">
-          <a href="/predict" className="pillBtn pillBtnPrimary">
-            <Sprout size={18} /> New Prediction
-          </a>
-          <button
-            className="pillBtn pillBtnOutline"
-            onClick={handleDownload}
-            disabled={downloading}
-          >
-            <Download size={18} />
-            {downloading ? "Preparing download..." : "Download Report (CSV)"}
-          </button>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
+          <DashboardMetric 
+            title="Total Acreage" 
+            value={farms ? farms.length : <span className="animate-pulse bg-white/10 w-24 h-10 rounded block"></span>} 
+            subtitle="Active registered farms" 
+          />
+          <DashboardMetric 
+            title="Yield Forecast" 
+            value={analysisResult?.prediction?.predicted_yield ? `${analysisResult.prediction.predicted_yield}` : <span className="text-primary/70 italic text-2xl font-light">Pending</span>} 
+            subtitle={analysisResult?.prediction?.yield_unit || "Run analysis"} 
+          />
+          <DashboardMetric 
+            title="Recommended Crop" 
+            value={analysisResult?.recommendation?.recommended_crop ? analysisResult.recommendation.recommended_crop : <span className="text-primary/70 italic text-2xl font-light">Pending</span>} 
+            subtitle={analysisResult?.recommendation?.confidence ? `Confidence: ${(analysisResult.recommendation.confidence * 100).toFixed(0)}%` : "Run analysis"} 
+          />
+          <DashboardMetric 
+            title="Climate Risk" 
+            value={analysisResult?.risk_level ? <span className="text-danger italic text-lg font-light">{analysisResult.risk_level}</span> : <span className="text-primary/70 italic text-2xl font-light">Pending</span>} 
+            subtitle="API sync" 
+          />
         </div>
 
-        <style jsx>{`
-          .page { max-width: 800px; margin: 0 auto; padding: 40px 24px 100px; }
-          h1 { font-size: 28px; font-weight: 800; color: #14532d; margin-bottom: 4px; }
-          .subtitle { color: #6b7280; margin-bottom: 24px; }
+        <h2 className="text-xl font-semibold mb-6 flex items-center gap-3">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+          Registered Locations
+        </h2>
 
-          /* Quick-action grid */
-          .quickGrid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 12px;
-            margin-bottom: 20px;
-          }
-          .quickTile {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            background: var(--color-surface);
-            border: 1px solid var(--color-neutral-200);
-            border-radius: var(--radius-md);
-            padding: 18px 8px;
-            text-decoration: none;
-            box-shadow: var(--shadow-sm);
-            transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
-          }
-          .quickTile:hover {
-            transform: translateY(-2px);
-            box-shadow: var(--shadow-md);
-            border-color: var(--color-primary-500);
-          }
-          .quickIcon {
-            width: 44px;
-            height: 44px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: var(--color-primary-100);
-            color: var(--color-primary-700);
-          }
-          .quickLabel {
-            font-size: 12.5px;
-            font-weight: 600;
-            color: var(--color-neutral-900);
-            text-align: center;
-            line-height: 1.3;
-          }
+        <div className="glass-panel rounded-2xl overflow-hidden border border-white/5 mb-8">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="border-b border-white/10 bg-white/5">
+                <th className="px-6 py-4 text-xs uppercase tracking-wider text-textSecondary font-medium">Farm Name</th>
+                <th className="px-6 py-4 text-xs uppercase tracking-wider text-textSecondary font-medium">Coordinates</th>
+                <th className="px-6 py-4 text-xs uppercase tracking-wider text-textSecondary font-medium">Soil pH</th>
+                <th className="px-6 py-4 text-xs uppercase tracking-wider text-textSecondary font-medium text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-white/5">
+              {farms === null && !error && (
+                <tr>
+                  <td colSpan={4} className="px-6 py-12 text-center">
+                    <div className="flex flex-col items-center gap-4">
+                      <svg className="animate-spin h-6 w-6 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                      <span className="text-textMuted text-sm">Synchronizing ledger...</span>
+                    </div>
+                  </td>
+                </tr>
+              )}
+              {farms?.length === 0 && (
+                <tr>
+                  <td colSpan={4} className="px-6 py-16 text-center">
+                    <p className="text-textSecondary mb-2">No farms registered yet</p>
+                  </td>
+                </tr>
+              )}
+              {farms?.map((farm) => (
+                <tr key={farm.id} className="hover:bg-white/5 transition-colors group">
+                  <td className="px-6 py-5 font-medium text-white flex items-center gap-3">
+                    {farm.farm_name}
+                  </td>
+                  <td className="px-6 py-5 font-mono text-sm text-textSecondary">
+                    {farm.latitude.toFixed(4)}, {farm.longitude.toFixed(4)}
+                  </td>
+                  <td className="px-6 py-5 font-mono text-sm text-white">
+                    {farm.soil_ph?.toFixed(2) ?? "—"}
+                  </td>
+                  <td className="px-6 py-5 text-right">
+                    <div className="flex items-center justify-end gap-2">
+                        <input type="text" className="bg-black/40 border border-white/10 rounded px-2 py-1 text-sm text-white w-24" placeholder="Crop..." value={cropInput} onChange={e => setCropInput(e.target.value)} />
+                        <button 
+                            disabled={analyzingId === farm.id}
+                            onClick={() => handleAnalyze(farm.id)} 
+                            className="btn-secondary py-1 px-3 text-sm">
+                            {analyzingId === farm.id ? "Analyzing..." : "Run Analysis"}
+                        </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        
+        {analysisResult?.weather && (
+            <div className="glass-panel rounded-2xl p-6 mb-8">
+                <h3 className="text-lg font-semibold mb-4 text-white">Latest Weather Observation</h3>
+                <div className="flex gap-8">
+                    <div><span className="text-textMuted block text-sm">Temperature</span> <span className="font-mono text-xl">{analysisResult.weather.temperature}°C</span></div>
+                    <div><span className="text-textMuted block text-sm">Humidity</span> <span className="font-mono text-xl">{analysisResult.weather.humidity}%</span></div>
+                    <div><span className="text-textMuted block text-sm">Rainfall</span> <span className="font-mono text-xl">{analysisResult.weather.rainfall}mm</span></div>
+                </div>
+            </div>
+        )}
 
-          /* Featured promo card */
-          .promoCard {
-            display: flex;
-            align-items: center;
-            gap: 20px;
-            background: var(--gradient-primary);
-            border-radius: var(--radius-lg);
-            padding: 24px;
-            margin-bottom: 20px;
-            text-decoration: none;
-            box-shadow: var(--shadow-lg);
-          }
-          .promoArt {
-            flex-shrink: 0;
-            width: 84px;
-            height: 84px;
-            border-radius: 18px;
-            background: rgba(255, 255, 255, 0.16);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #fff;
-          }
-          .promoBody { flex: 1; min-width: 0; }
-          .promoTitle {
-            color: #fff;
-            font-size: 17px;
-            font-weight: 700;
-            margin: 0 0 6px;
-          }
-          .promoText {
-            color: rgba(255, 255, 255, 0.85);
-            font-size: 13.5px;
-            line-height: 1.5;
-            margin: 0 0 14px;
-          }
-          .promoBtn {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            background: #fff;
-            color: var(--color-primary-700);
-            font-size: 13.5px;
-            font-weight: 700;
-            padding: 8px 16px;
-            border-radius: 999px;
-          }
+        {history && (
+            <div className="mt-12">
+              <h2 className="text-xl font-semibold mb-6 flex items-center gap-3">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary"><path d="M3 3v18h18"/><path d="M18.7 8l-5.1 5.2-2.8-2.7L7 14.3"/></svg>
+                Agricultural Analytics & History
+              </h2>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                
+                {/* Yield History */}
+                <div className="glass-panel rounded-2xl p-6 overflow-hidden">
+                  <h3 className="text-sm text-textMuted uppercase tracking-wider mb-4">Yield Prediction History</h3>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left">
+                      <thead className="border-b border-white/10">
+                        <tr>
+                          <th className="pb-2 text-xs text-textSecondary font-medium">Date</th>
+                          <th className="pb-2 text-xs text-textSecondary font-medium">Crop</th>
+                          <th className="pb-2 text-xs text-textSecondary font-medium">Prediction</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-white/5">
+                        {history.predictions?.length === 0 && (
+                            <tr><td colSpan={3} className="py-4 text-sm text-textMuted italic">No history available yet.</td></tr>
+                        )}
+                        {history.predictions?.slice(0, 5).map((p: any) => (
+                          <tr key={p.id}>
+                            <td className="py-3 text-sm text-white font-mono">{new Date(p.created_at).toLocaleDateString()}</td>
+                            <td className="py-3 text-sm text-white">{p.crop}</td>
+                            <td className="py-3 text-sm text-primary font-mono">{p.predicted_yield.toFixed(2)} {p.yield_unit}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
 
-          .card {
-            background: white;
-            border-radius: 16px;
-            padding: 28px;
-            box-shadow: 0 2px 12px rgba(0,0,0,0.06);
-            margin-bottom: 20px;
-          }
-          .label { font-size: 14px; color: #4b5563; font-weight: 600; margin: 0 0 8px; }
-          .score-card { background: #f0fdf4; }
-          .score { font-size: 40px; font-weight: 800; color: #15803d; margin: 4px 0; }
-          .sub { font-size: 13px; color: #6b7280; margin: 4px 0 0; }
-          .error { color: #dc2626; font-size: 14px; }
-          .empty { color: #6b7280; font-size: 14px; line-height: 1.6; }
-          .link { color: #15803d; font-weight: 600; text-decoration: none; }
-          .link:hover { text-decoration: underline; }
+                {/* Recommendation History */}
+                <div className="glass-panel rounded-2xl p-6 overflow-hidden">
+                  <h3 className="text-sm text-textMuted uppercase tracking-wider mb-4">Recommendation History</h3>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left">
+                      <thead className="border-b border-white/10">
+                        <tr>
+                          <th className="pb-2 text-xs text-textSecondary font-medium">Date</th>
+                          <th className="pb-2 text-xs text-textSecondary font-medium">Recommended</th>
+                          <th className="pb-2 text-xs text-textSecondary font-medium">Confidence</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-white/5">
+                        {history.recommendations?.length === 0 && (
+                            <tr><td colSpan={3} className="py-4 text-sm text-textMuted italic">No history available yet.</td></tr>
+                        )}
+                        {history.recommendations?.slice(0, 5).map((r: any) => (
+                          <tr key={r.id}>
+                            <td className="py-3 text-sm text-white font-mono">{new Date(r.created_at).toLocaleDateString()}</td>
+                            <td className="py-3 text-sm text-white capitalize">{r.recommended_crop}</td>
+                            <td className="py-3 text-sm text-primary font-mono">{(r.confidence * 100).toFixed(1)}%</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
 
-          .skeleton { display: flex; flex-direction: column; gap: 14px; }
-          .skel-line {
-            border-radius: 6px;
-            background: linear-gradient(90deg, #e5e7eb 25%, #f3f4f6 50%, #e5e7eb 75%);
-            background-size: 200% 100%;
-            animation: shimmer 1.4s ease-in-out infinite;
-          }
-          .skel-label { width: 30%; height: 14px; }
-          .skel-chart { width: 100%; height: 260px; }
-
-          @keyframes shimmer {
-            0% { background-position: 200% 0; }
-            100% { background-position: -200% 0; }
-          }
-
-          /* Bottom CTA pills */
-          .ctaRow {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            margin-top: 8px;
-          }
-          .pillBtn {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            width: 100%;
-            padding: 14px 20px;
-            border-radius: 999px;
-            font-size: 14.5px;
-            font-weight: 700;
-            text-decoration: none;
-            cursor: pointer;
-            border: none;
-          }
-          .pillBtnPrimary {
-            background: var(--color-primary-500);
-            color: #fff;
-          }
-          .pillBtnPrimary:hover { background: var(--color-primary-700); }
-          .pillBtnOutline {
-            background: #fff;
-            color: var(--color-primary-700);
-            border: 1.5px solid var(--color-primary-500);
-          }
-          .pillBtnOutline:hover { background: var(--color-primary-100); }
-          .pillBtnOutline:disabled { opacity: 0.6; cursor: not-allowed; }
-
-          @media (min-width: 480px) {
-            .quickGrid { grid-template-columns: repeat(6, 1fr); }
-            .ctaRow { flex-direction: row; }
-          }
-        `}</style>
+              </div>
+            </div>
+        )}
       </div>
-    </>
+    </main>
   );
 }

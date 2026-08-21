@@ -1,51 +1,36 @@
-"""
-YieldSense AI — Backend Entry Point
-File: backend/main.py
-"""
-
-from pathlib import Path
-from dotenv import load_dotenv
-
-load_dotenv(dotenv_path=Path(__file__).resolve().parent / ".env")
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.routes import auth, onboarding, predictions, recommendations, dashboard, reports
+from database import init_db
+from routers import auth, farms, analysis, crops
 
 app = FastAPI(
-    title="YieldSense AI API",
-    description="Crop Yield Prediction & Agricultural Productivity Forecasting System",
+    title="YieldSense AI Core",
+    description="Predictive analytics API for agricultural yield forecasting.",
     version="0.1.0",
 )
 
-origins = [
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-    "http://localhost:3001",
-    "http://127.0.0.1:3001",
-]
+# Tighten this list before deploying anywhere beyond localhost.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=["http://localhost:3000"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-app.include_router(auth.router, prefix="/api/v1/auth", tags=["Authentication"])
-app.include_router(onboarding.router, prefix="/api/v1/onboarding", tags=["Onboarding"])
-app.include_router(reports.router, tags=["Reports"])
-app.include_router(predictions.router, tags=["Predictions"])
-app.include_router(recommendations.router, tags=["Analytics & Recommendations"])
-app.include_router(dashboard.router, tags=["Dashboard"])
+app.include_router(auth.router)
+app.include_router(farms.router)
+app.include_router(analysis.router)
+app.include_router(crops.router)
 
 
-@app.get("/health", tags=["System"])
-def health_check():
-    return {"status": "ok", "service": "yieldsense-api", "version": "0.1.0"}
+@app.on_event("startup")
+def on_startup():
+    # Applies schema.sql if tables don't exist yet, so a fresh Postgres
+    # instance is usable without a manual psql step.
+    init_db()
 
 
-@app.get("/", tags=["System"])
-def root():
-    return {"message": "Welcome to YieldSense AI API. See /docs for interactive API documentation."}
+
