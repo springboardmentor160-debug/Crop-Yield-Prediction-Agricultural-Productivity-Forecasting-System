@@ -1,43 +1,36 @@
-"""
-SQLAlchemy ORM model for the `users` table.
-File: backend/app/models/user.py
-"""
+import enum
+from datetime import datetime
 
-import uuid
-from datetime import datetime, timezone
+from sqlalchemy import DateTime, Enum, String, Boolean, func
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, String
-from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import relationship
-from app.db.session import Base
+from app.db.database import Base
 
 
-def _utcnow() -> datetime:
-    return datetime.now(timezone.utc)
-
-
-class Role(Base):
-    __tablename__ = "roles"
-
-    role_id = Column(Integer, primary_key=True)
-    role_name = Column(String(30), unique=True, nullable=False)
-
-    users = relationship("User", back_populates="role")
+class UserRole(str, enum.Enum):
+    ADMIN = "admin"                        # Full platform administration
+    GOV_OFFICIAL = "gov_official"          # Government agriculture department
+    AGRI_CONSULTANT = "agri_consultant"    # Advises multiple farms, reviews predictions
+    COOPERATIVE_MANAGER = "cooperative_manager"  # Manages a cooperative of farms
+    FARMER = "farmer"                      # Manages own farm(s)
 
 
 class User(Base):
     __tablename__ = "users"
 
-    user_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    full_name = Column(String(120), nullable=False)
-    email = Column(String(150), unique=True, nullable=False, index=True)
-    hashed_password = Column(String(255), nullable=False)
-    role_id = Column(Integer, ForeignKey("roles.role_id"), nullable=False)
-    is_active = Column(Boolean, default=True, nullable=False)
-    created_at = Column(DateTime(timezone=True), default=_utcnow, nullable=False)
-    updated_at = Column(DateTime(timezone=True), default=_utcnow, onupdate=_utcnow, nullable=False)
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    full_name: Mapped[str] = mapped_column(String(120), nullable=False)
+    email: Mapped[str] = mapped_column(String(255), unique=True, index=True, nullable=False)
+    hashed_password: Mapped[str] = mapped_column(String(255), nullable=False)
+    role: Mapped[UserRole] = mapped_column(Enum(UserRole), default=UserRole.FARMER, nullable=False)
+    phone: Mapped[str | None] = mapped_column(String(30), nullable=True)
+    organization: Mapped[str | None] = mapped_column(String(150), nullable=True)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
-    role = relationship("Role", back_populates="users")
+    farms = relationship("Farm", back_populates="owner", cascade="all, delete-orphan")
 
-    def __repr__(self) -> str:
-        return f"<User {self.email} ({self.role.role_name if self.role else 'no-role'})>"
+    # Permission matrix consulted by RBAC dependency (app.core.rbac)
+    @property
+    def is_admin(self) -> bool:
+        return self.role == UserRole.ADMIN
