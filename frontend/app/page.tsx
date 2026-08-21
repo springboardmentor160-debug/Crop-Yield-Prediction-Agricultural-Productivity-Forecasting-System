@@ -42,7 +42,7 @@ import WeatherCard from "../components/WeatherCard";
 import SoilCard from "../components/SoilCard";
 import { DashboardCharts } from "../components/DashboardCharts";
 
-const API_BASE = "http://localhost:8000/api/v1";
+const API_BASE = (process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8000/api/v1").replace(/\/$/, "");
 
 export default function Home() {
   // Authentication & Session state
@@ -171,7 +171,8 @@ export default function Home() {
     try {
       const res = await fetch(`${API_BASE}/health`);
       if (res.ok) {
-        setSysStatus({ backend: "Connected", db: "Connected" });
+        const health = await res.json();
+        setSysStatus({ backend: "Connected", db: health.database_status === "ready" ? "Connected" : "Error" });
       } else {
         setSysStatus({ backend: "Error", db: "Error" });
       }
@@ -203,7 +204,7 @@ export default function Home() {
         handleLogout();
       }
     } catch (e) {
-      showError("Authentication verification failed. Running in offline/cached mode.");
+      showError("Authentication verification failed. Check that the backend API is available.");
     }
   };
 

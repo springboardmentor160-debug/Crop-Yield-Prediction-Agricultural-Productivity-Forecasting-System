@@ -1,5 +1,6 @@
 import os
 import shutil
+import uuid
 from pathlib import Path
 from fastapi import Depends, FastAPI, HTTPException, UploadFile, File, status
 from fastapi.middleware.cors import CORSMiddleware
@@ -31,6 +32,9 @@ app = FastAPI(
     version="1.0.0",
 )
 
+BASE_DIR = Path(__file__).resolve().parent
+DATA_DIR = BASE_DIR / "data"
+
 # Enable CORS for frontend integration
 app.add_middleware(
     CORSMiddleware,
@@ -54,12 +58,20 @@ app.include_router(analytics_summary.router)
 @app.on_event("startup")
 def startup_event():
     initialize_database()
-    os.makedirs("data/raw", exist_ok=True)
-    os.makedirs("data/processed", exist_ok=True)
+    (DATA_DIR / "raw").mkdir(parents=True, exist_ok=True)
+    (DATA_DIR / "processed").mkdir(parents=True, exist_ok=True)
 
 
 @app.get("/api/v1/health")
 def health_check():
+    try:
+        # Verify the configured database is reachable rather than reporting a
+        # successful connection solely because the web process is running.
+        fetch_one("SELECT 1 AS database_ready")
+        database_status = "ready"
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail=f"Database unavailable: {exc}") from exc
+
     model_status = "ready"
     try:
         artifact = load_model_artifact()
@@ -71,6 +83,7 @@ def health_check():
     return {
         "status": "healthy",
         "service": "YieldSense AI Core Platform",
+        "database_status": database_status,
         "model_status": model_status,
         "model_type": model_type,
     }
@@ -619,13 +632,17 @@ async def upload_dataset_csv(file: UploadFile = File(...), current_user: dict = 
         raise HTTPException(status_code=400, detail="Only CSV datasets are accepted")
 
     user_id = int(current_user["sub"])
-    raw_dir = "data/raw"
-    processed_dir = "data/processed"
-    os.makedirs(raw_dir, exist_ok=True)
-    os.makedirs(processed_dir, exist_ok=True)
+    raw_dir = DATA_DIR / "raw"
+    processed_dir = DATA_DIR / "processed"
+    raw_dir.mkdir(parents=True, exist_ok=True)
+    processed_dir.mkdir(parents=True, exist_ok=True)
 
     # Save uploaded raw file
-    raw_path = os.path.join(raw_dir, f"{user_id}_{filename}")
+    # Keep a user-friendly filename in the database, but use a unique on-disk
+    # name so repeated uploads never overwrite another dataset's raw/cleaned
+    # files.  This also makes deletion safe for every uploaded record.
+    storage_name = f"{user_id}_{uuid.uuid4().hex}_{filename}"
+    raw_path = raw_dir / storage_name
     with open(raw_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer, length=1024 * 1024)
 
@@ -633,7 +650,7 @@ async def upload_dataset_csv(file: UploadFile = File(...), current_user: dict = 
     if file_size == 0 or file_size > 20 * 1024 * 1024:
         os.remove(raw_path)
         raise HTTPException(status_code=413, detail="CSV files must be between 1 byte and 20 MB")
-    processed_path = os.path.join(processed_dir, f"clean_{user_id}_{filename}")
+    processed_path = processed_dir / f"clean_{storage_name}"
 
     # Run preprocessing script
     preprocess_result = run_agri_preprocessing_pipeline(raw_path, processed_path)
@@ -650,7 +667,7 @@ async def upload_dataset_csv(file: UploadFile = File(...), current_user: dict = 
         """,
         (
             filename,
-            processed_path,
+            str(processed_path),
             file_size,
             preprocess_result["status"],
             preprocess_result.get("row_count", 0),
@@ -695,8 +712,11 @@ def delete_dataset(id: int, current_user: dict = Depends(get_current_user)):
         except Exception:
             pass
 
-    # Clean up corresponding raw file if it exists
-    raw_file = os.path.join("data/raw", f"{dataset['uploaded_by']}_{dataset['filename']}")
+    # The processed file is named clean_<raw filename>, so derive the raw
+    # path from the actual stored filepath instead of the display filename.
+    processed_filename = os.path.basename(dataset["filepath"])
+    raw_filename = processed_filename.removeprefix("clean_")
+    raw_file = DATA_DIR / "raw" / raw_filename
     if os.path.exists(raw_file):
         try:
             os.remove(raw_file)
