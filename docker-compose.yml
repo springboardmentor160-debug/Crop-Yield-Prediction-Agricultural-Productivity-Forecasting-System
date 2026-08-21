@@ -1,34 +1,49 @@
 version: "3.9"
 
 services:
-  db:
-    image: postgres:15
-    environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=admin123
-      - POSTGRES_DB=yieldsense
-    ports:
-      - "5432:5432"
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-
   backend:
-    build: ./backend
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: yieldsense-backend
     ports:
       - "8000:8000"
     environment:
-      - DATABASE_URL=postgresql://postgres:postgres@db:5432/yieldsense
-    depends_on:
-      - db
+      - PORT=8000
+      - DEBUG=false
+      - API_V1_PREFIX=/api/v1
+    env_file:
+      - ./backend/.env
+    restart: unless-stopped
+    networks:
+      - yieldsense-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health"]
+      interval: 20s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
 
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: yieldsense-frontend
     ports:
       - "3000:3000"
     environment:
-      - NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
+      - PORT=3000
+      - HOSTNAME=0.0.0.0
+      - NEXT_PUBLIC_API_BASE_URL=http://localhost:8000/api/v1
+    env_file:
+      - ./frontend/.env.local
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - yieldsense-network
 
-volumes:
-  pgdata:
+networks:
+  yieldsense-network:
+    driver: bridge

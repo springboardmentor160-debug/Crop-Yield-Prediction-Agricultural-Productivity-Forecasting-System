@@ -1,39 +1,44 @@
-# --- Web Framework -----------------------------------------------------
-fastapi==0.111.0
-uvicorn[standard]==0.30.1
+# ============================================================
+# YieldSense AI — Backend Dependencies
+# ============================================================
 
-# --- Database / ORM -----------------------------------------------------
-sqlalchemy==2.0.30
-psycopg2-binary==2.9.9
-alembic==1.13.1
+# Core Framework
+fastapi==0.115.12
+uvicorn[standard]==0.34.2
+pydantic==2.11.3
+pydantic-settings==2.9.1
+email-validator==2.2.0
 
-# --- Auth / Security -----------------------------------------------------
-python-jose[cryptography]==3.3.0
-passlib[bcrypt]==1.7.4
-python-multipart==0.0.9
+# Firebase
+firebase-admin==6.8.0
 
-# --- Validation / Config -----------------------------------------------------
-pydantic==2.7.1
-pydantic-settings==2.2.1
-python-dotenv==1.0.1
+# HTTP Client (for Firebase REST API calls + Weather API)
+httpx==0.28.1
 
-# --- Data Processing -----------------------------------------------------
-pandas==2.2.2
-numpy==2.5.1
+# Data Processing
+pandas==2.3.0
+numpy==2.3.0
 
-# --- ML (active — used by yield prediction model, Milestone-1) -----------------------------------------------------
-scikit-learn==1.9.0
-xgboost==2.1.*
-joblib==1.5.3
-scipy==1.18.0
-threadpoolctl==3.6.0
-narwhals==2.24.0
+# Machine Learning (Milestone 2)
+scikit-learn==1.7.0
+xgboost==3.0.2
+joblib==1.5.1
+matplotlib==3.10.3
+seaborn==0.13.2
 
-# --- Milestone-3: Analytics, Recommendations & Reporting -----------------------------------------------------
-# No new packages required for the Recommendation Engine / Risk Assessment router
-# (it only uses fastapi + pydantic, both already listed above).
-# reportlab==4.2.0        # uncomment when building Task 6 PDF export (Option B, backend-generated PDF)
+# CORS
+python-multipart==0.0.20
 
-# --- Testing -----------------------------------------------------
-pytest==8.2.0
-httpx==0.27.0
+# Environment
+python-dotenv==1.1.0
+
+# Testing
+pytest==8.4.1
+pytest-asyncio==1.0.0
+
+# Utilities
+python-dateutil==2.9.0
+
+# Milestone 3 — Reporting & Export
+reportlab==4.4.1
+

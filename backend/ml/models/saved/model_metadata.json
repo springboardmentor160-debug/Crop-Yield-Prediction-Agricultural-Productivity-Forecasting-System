@@ -1,0 +1,31 @@
+{
+  "best_model": "Gradient Boosting",
+  "test_r2": 0.6473149256079682,
+  "test_mae": 0.2720632739489603,
+  "test_rmse": 0.3519055078280169,
+  "cv_mean_r2": 0.2329507607985722,
+  "training_samples": 167,
+  "test_samples": 42,
+  "num_features": 13,
+  "feature_names": [
+    "crop",
+    "season",
+    "state",
+    "area",
+    "production",
+    "annual_rainfall",
+    "fertilizer_usage",
+    "pesticide_usage",
+    "temperature",
+    "soil_ph",
+    "nitrogen",
+    "phosphorus",
+    "potassium"
+  ],
+  "all_models_r2": {
+    "Random Forest": 0.5413571190779564,
+    "XGBoost": 0.5964086706108014,
+    "Gradient Boosting": 0.6473149256079682,
+    "Linear Regression": 0.18565585494486225
+  }
+}

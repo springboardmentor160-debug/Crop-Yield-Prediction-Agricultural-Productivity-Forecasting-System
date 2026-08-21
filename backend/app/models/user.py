@@ -1,43 +1,55 @@
 """
-SQLAlchemy ORM model for the `users` table.
-File: backend/app/models/user.py
+YieldSense AI  -  User Model
+
+Domain model for user data stored in Firestore.
 """
 
-import uuid
-from datetime import datetime, timezone
+from dataclasses import dataclass, field
+from datetime import datetime
+from typing import Optional
 
-from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, String
-from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import relationship
-from app.db.session import Base
+from app.utils.helpers import utc_now
 
 
-def _utcnow() -> datetime:
-    return datetime.now(timezone.utc)
+@dataclass
+class User:
+    """Represents a user in the system."""
 
+    uid: str
+    email: str
+    display_name: str
+    role: str = "farmer"  # 'farmer' or 'admin'
+    phone: Optional[str] = None
+    avatar_url: Optional[str] = None
+    created_at: datetime = field(default_factory=utc_now)
+    updated_at: datetime = field(default_factory=utc_now)
+    is_active: bool = True
 
-class Role(Base):
-    __tablename__ = "roles"
+    def to_dict(self) -> dict:
+        """Convert to Firestore-compatible dictionary."""
+        return {
+            "uid": self.uid,
+            "email": self.email,
+            "display_name": self.display_name,
+            "role": self.role,
+            "phone": self.phone,
+            "avatar_url": self.avatar_url,
+            "created_at": self.created_at.isoformat(),
+            "updated_at": self.updated_at.isoformat(),
+            "is_active": self.is_active,
+        }
 
-    role_id = Column(Integer, primary_key=True)
-    role_name = Column(String(30), unique=True, nullable=False)
-
-    users = relationship("User", back_populates="role")
-
-
-class User(Base):
-    __tablename__ = "users"
-
-    user_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    full_name = Column(String(120), nullable=False)
-    email = Column(String(150), unique=True, nullable=False, index=True)
-    hashed_password = Column(String(255), nullable=False)
-    role_id = Column(Integer, ForeignKey("roles.role_id"), nullable=False)
-    is_active = Column(Boolean, default=True, nullable=False)
-    created_at = Column(DateTime(timezone=True), default=_utcnow, nullable=False)
-    updated_at = Column(DateTime(timezone=True), default=_utcnow, onupdate=_utcnow, nullable=False)
-
-    role = relationship("Role", back_populates="users")
-
-    def __repr__(self) -> str:
-        return f"<User {self.email} ({self.role.role_name if self.role else 'no-role'})>"
+    @classmethod
+    def from_dict(cls, data: dict) -> "User":
+        """Create a User from a Firestore document dictionary."""
+        return cls(
+            uid=data.get("uid", ""),
+            email=data.get("email", ""),
+            display_name=data.get("display_name", ""),
+            role=data.get("role", "farmer"),
+            phone=data.get("phone"),
+            avatar_url=data.get("avatar_url"),
+            created_at=datetime.fromisoformat(data["created_at"]) if data.get("created_at") else utc_now(),
+            updated_at=datetime.fromisoformat(data["updated_at"]) if data.get("updated_at") else utc_now(),
+            is_active=data.get("is_active", True),
+        )
