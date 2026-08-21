@@ -1,63 +1,74 @@
 # YieldSense AI
 
 ## Overview
-YieldSense AI predicts crop yield for farmers using machine learning, combined with weather and soil analysis, and provides actionable recommendations and risk assessments to support better farming decisions.
+YieldSense AI is a centralized, predictive agricultural analytics platform designed to estimate future crop yields using environmental factors, weather metrics, and soil characteristics. The platform translates complex predictive model data into plain-English agronomic recommendations and real-time risk assessment alerts, empowering farmers, researchers, and administrators to make data-driven agricultural decisions.
 
 ## Features
-- Crop yield prediction using a Random Forest regression model
-- Weather and soil-based analytics feeding into predictions
-- Analytics dashboard — productivity score, yield trends, crop comparison
-- Rule-based recommendation and risk assessment engine (soil pH, NPK nutrients, rainfall, temperature)
-- Automated backend tests (pytest)
+- **Crop Yield Prediction**: Interactive machine learning crop yield forecasting using a trained XGBoost regressor model.
+- **Role-Based Portals**: Dedicated, responsive dashboard layouts tailored to the needs of Farmers (prediction/alerts), Researchers (model metrics/API specs), and Administrators (system logs/metrics).
+- **Agronomic Recommendations**: Dynamic soil and nutrient recommendations (NPK/pH inputs) to optimize crop management.
+- **Risk Assessment System**: Real-time climate risk calculation (Low/Medium/High Risk badges) using automated temperature and rainfall threshold alerts.
+- **Data Exporting**: Capability to export productivity and prediction reports as CSV or PDF documents.
+- **Comprehensive API Tests**: Full unit testing coverage of backend endpoints with Pytest.
 
 ## Tech Stack
-**Backend:** FastAPI, PostgreSQL, SQLAlchemy
-**Frontend:** Next.js, React, Recharts
-**ML:** Scikit-learn (RandomForestRegressor), Pandas, NumPy
-**Testing:** Pytest
-**Containerization:** Docker, Docker Compose
-
-## Model Performance
-Evaluated on a held-out test set (not used in training):
-- **R²:** 0.877
-- **MAE:** 543.93 kg/ha
-- **RMSE:** 792.35 kg/ha
+- **Backend**: Python FastAPI, SQLAlchemy (SQLite local / PostgreSQL production), Pydantic
+- **Frontend**: Next.js, React, Tailwind CSS, Recharts
+- **ML & Analytics**: Scikit-learn, XGBoost, Pandas, NumPy
+- **Deployment & DevOps**: Docker, Docker Compose, Pytest, HTTPX
 
 ## Setup Instructions
-1. Clone the repository
-2. **Backend:**
 
+### Local Manual Installation
+
+#### 1. Clone the repository
+```bash
+git clone https://github.com/springboardmentor656-alt/Title-YieldSense-AI-Crop-Yield-Prediction-Agricultural-Productivity-Forecasting-System.git
+cd Title-YieldSense-AI-Crop-Yield-Prediction-Agricultural-Productivity-Forecasting-System
+git checkout Tirutopu-Srivardhan
+```
+
+#### 2. Start Backend Server
+```bash
 cd backend
 python -m venv venv
-venv\Scripts\Activate.ps1
+# On Windows PowerShell:
+.\venv\Scripts\Activate.ps1
+# On Linux/macOS:
+source venv/bin/activate
+
 pip install -r requirements.txt
+python -m uvicorn app.main:app --reload --port 8000
+```
 
-3. **Frontend:**
-
+#### 3. Start Frontend Server
+In a new terminal window:
+```bash
 cd frontend
 npm install
+npm run dev -- --port 3000
+```
+Open [http://localhost:3000](http://localhost:3000) to view the application.
 
-4. **Model:** run `python -m app.ml.train` to train and generate the model locally (see `.gitignore` — trained model files are not committed directly)
-5. **Run backend:** `uvicorn main:app --reload` (from `backend/`)
-6. **Run frontend:** `npm run dev` (from `frontend/`)
+#### 4. Run Backend Tests
+Ensure your backend virtual environment is active, then run:
+```bash
+python -m pytest tests/ -W ignore
+```
 
-## Testing
+---
 
-cd backend
-pytest tests/ -v
+### Run with Docker (Recommended)
+You can start all services (Frontend, Backend, and PostgreSQL database) simultaneously using Docker Compose:
+```bash
+docker-compose up --build
+```
+Access the application at [http://localhost:3000](http://localhost:3000).
 
+For cloud production deployment steps (AWS and Azure architecture), see the detailed [Cloud & Container Deployment Guide](docs/deployment.md).
 
-## Docker
-Dockerfiles and `docker-compose.yml` are included for backend, frontend, and PostgreSQL, ready to run with:
-
-docker compose up --build
-
-> Note: Not run in this development environment due to virtualization being disabled at the hardware/IT-policy level on this machine (common on managed corporate laptops). Configuration is complete and correct.
+## Screenshots
+*(Dashboards screenshots can be added here during documentation review)*
 
 ## License
-This project is licensed under the MIT License - see [LICENSE](./LICENSE)
-
-A few notes on what I filled in
-Model Performance numbers — pulled directly from your actual train.py run earlier, not placeholders
-Setup instructions — match your real commands (python -m app.ml.train, uvicorn main:app) instead of the generic handout versions
-Docker note — honest, professional framing of the limitation, not hidden or faked
+This project is licensed under the MIT License - see [LICENSE.md](LICENSE.md)
