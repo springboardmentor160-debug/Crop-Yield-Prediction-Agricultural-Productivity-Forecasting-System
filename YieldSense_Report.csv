@@ -1,0 +1,25 @@
+User Email,Crop,Temperature (°C),Rainfall (mm),Pesticides (tonnes),Soil pH,Predicted Yield (kg/ha),Risk Level,Recommendation,Prediction Date
+demo@example.com,wheat,25.0,1555.0,85.0,5.0,39505.97,Medium Risk,Moderate Yield Expected. Monitor weather conditions.,2026-07-18 10:08:16
+test@gmail.com,Wheat,35.0,1500.0,150.0,7.8,53765.78,Low Risk,High Yield Expected. Continue current farming practices.,2026-07-22 07:50:01
+test@gmail.com,Wheat,35.0,1500.0,150.0,7.8,53765.78,Low Risk,High Yield Expected. Continue current farming practices.,2026-07-22 07:55:02
+test@gmail.com,Wheat,25.0,1200.0,150.0,6.8,14807.75,High Risk,Low Yield Risk. Increase irrigation and soil nutrients.,2026-07-28 17:49:25
+test@gmail.com,Wheat,23.09,0.0,150.0,6.5,57508.43,Low Risk,High Yield Expected. Continue current farming practices.,2026-08-01 09:26:43
+test@gmail.com,Wheat,20.45,0.0,158.0,6.8,57762.62,High Risk,"[""Critical: Implement drip irrigation immediately. Consider drought-resistant crop varieties.""]",2026-08-01 09:39:03
+test@gmail.com,Wheat,20.0,1200.0,158.0,6.8,14277.33,Low Risk,"[""Rainfall levels are optimal for standard irrigation schedules.""]",2026-08-01 09:39:43
+test@gmail.com,Wheat,20.0,1200.0,158.0,6.8,14277.33,Low Risk,"[""Rainfall levels are optimal for standard irrigation schedules.""]",2026-08-01 09:43:59
+test@gmail.com,Wheat,20.0,1200.0,158.0,6.8,14277.33,Low Risk,"[""Rainfall levels are optimal for standard irrigation schedules.""]",2026-08-01 09:44:29
+test@gmail.com,Maize,23.91,0.0,150.0,5.6,35657.94,High Risk,"[""Critical: Implement drip irrigation immediately. Consider drought-resistant crop varieties.""]",2026-08-01 09:47:55
+test@gmail.com,Maize,23.91,0.0,150.0,5.6,35657.94,High Risk,"[""Critical: Implement drip irrigation immediately. Consider drought-resistant crop varieties.""]",2026-08-01 09:47:55
+test@gmail.com,Wheat,24.13,0.0,154.0,5.8,54992.66,High Risk,"[""Critical: Implement drip irrigation immediately. Consider drought-resistant crop varieties.""]",2026-08-01 09:55:51
+test@gmail.com,Cotton,25.15,0.0,120.0,6.8,298338.64,High Risk,"[""Critical: Implement drip irrigation immediately. Consider drought-resistant crop varieties.""]",2026-08-05 09:10:55
+test@gmail.com,Sugarcane,26.39,0.0,120.0,4.5,320712.02,High Risk,"[""Critical: Implement drip irrigation immediately. Consider drought-resistant crop varieties."", ""Action: Apply agricultural lime to raise soil pH.""]",2026-08-05 10:04:09
+test@gmail.com,Sugarcane,26.39,0.0,120.0,4.5,320712.02,High Risk,"[""Critical: Implement drip irrigation immediately. Consider drought-resistant crop varieties."", ""Action: Apply agricultural lime to raise soil pH.""]",2026-08-05 10:04:11
+test@gmail.com,Barley,26.39,0.0,150.0,8.5,320712.02,High Risk,"[""Critical: Implement drip irrigation immediately. Consider drought-resistant crop varieties."", ""Action: Apply elemental sulfur to lower soil pH.""]",2026-08-05 10:25:22
+test@gmail.com,Sugarcane,27.38,0.0,150.0,8.5,322092.25,High Risk,"[""Critical: Implement drip irrigation immediately. Consider drought-resistant crop varieties."", ""Action: Apply elemental sulfur to lower soil pH.""]",2026-08-05 10:45:24
+test@gmail.com,Maize,28.45,0.0,151.0,4.8,42458.87,High Risk,"[""Critical: Implement drip irrigation immediately. Consider drought-resistant crop varieties."", ""Action: Apply agricultural lime to raise soil pH.""]",2026-08-05 12:05:12
+test@gmail.com,eee,35.74,0.0,158.0,5.8,22504.79,High Risk,"[""Critical: Implement drip irrigation immediately. Consider drought-resistant crop varieties."", ""Critical: Increase watering frequency to combat heat stress.""]",2026-08-05 14:19:34
+test@gmail.com,Rice,35.74,0.0,158.0,5.8,22504.79,High Risk,"[""Critical: Implement drip irrigation immediately. Consider drought-resistant crop varieties."", ""Critical: Increase watering frequency to combat heat stress.""]",2026-08-05 14:20:00
+test@gmail.com,Maize,27.25,0.0,150.0,5.8,42282.15,High Risk,"[""Critical: Implement drip irrigation immediately. Consider drought-resistant crop varieties.""]",2026-08-10 12:01:14
+yieldsense.test@gmail.com,Rice,25.0,500.0,70.0,6.5,99202.91,Low Risk,"[""Rainfall levels are optimal for standard irrigation schedules.""]",2026-08-13 08:41:18
+test@gmail.com,Rice,24.35,7.49,70.0,6.5,97959.22,High Risk,"[""Critical: Implement drip irrigation immediately. Consider drought-resistant crop varieties.""]",2026-08-13 08:57:14
+testfarmer2026@gmail.com,Wheat,25.0,800.0,20.0,6.5,14157.95,Low Risk,"[""Rainfall levels are optimal for standard irrigation schedules.""]",2026-08-15 10:14:07
